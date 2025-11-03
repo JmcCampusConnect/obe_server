@@ -166,14 +166,15 @@ route.post('/newtutoradded', async (req, res) => {
 
     try {
 
-        // const { newMentor } = req.body;
-
         const { staff_id, staff_name, graduate, category, dept_name, dept_id, batch, degree, section } = req.body;
+
+        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } })
+        const academic_sem = activeAcademic.academic_sem
 
         const existTutor = await mentor.findAll({
             where: {
                 staff_id, staff_name, graduate, category,
-                dept_id, dept_name, batch, degree, section
+                dept_id, dept_name, batch, degree, section, academic_sem
             }
         })
 
@@ -181,13 +182,14 @@ route.post('/newtutoradded', async (req, res) => {
 
         const newMentorCreated = await mentor.create({
             staff_id, staff_name, graduate, category,
-            dept_id, dept_name, batch, degree, section
+            dept_id, dept_name, batch, degree, section, academic_sem
         })
+
         res.status(201).json({ message: "New Tutor Added", mentor: newMentorCreated });
     }
     catch (err) {
-        console.error("Error adding Tutor:", err);
-        res.status(500).json({ error: "Failed to add new Tutor", details: err.message });
+        console.error('Error in adding new tutor : ', err); 
+        res.status(500).json({ error: "An error occurred while adding the record." });
     }
 })
 
@@ -223,6 +225,7 @@ route.put("/mentor/:id", async (req, res) => {
 route.delete('/mentor/:id', async (req, res) => {
 
     const { id } = req.params;
+    console.log(id)
 
     try {
 
