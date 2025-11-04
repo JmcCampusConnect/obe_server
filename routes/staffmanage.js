@@ -137,19 +137,9 @@ route.get('/mentor', async (req, res) => {
     try {
 
         const activeAcademic = await academic.findOne({ where: { active_sem: 1 } })
-
-        const mentorData = await mentor.findAll(
-            { where: { academic_sem: activeAcademic.academic_sem } }
-        )
-
-        const allStaff = await staffmaster.findAll({
-            attributes: ['staff_id', 'staff_name']
-        })
-
-        const staffDeptDetails = await mentor.findAll({
-            attributes: ['graduate', 'dept_id', 'category', 'degree', 'dept_name', 'section', 'batch'],
-        })
-
+        const mentorData = await mentor.findAll( { where: { academic_sem: activeAcademic.academic_sem } })
+        const allStaff = await staffmaster.findAll({ attributes: ['staff_id', 'staff_name'] })
+        const staffDeptDetails = await mentor.findAll({ attributes: ['graduate', 'dept_id', 'category', 'degree', 'dept_name', 'section', 'batch']})
         res.json({ mentorData: mentorData, staff_data: allStaff, 'deptDetails': staffDeptDetails });
     }
     catch (err) {
@@ -170,10 +160,11 @@ route.post('/newtutoradded', async (req, res) => {
 
         const activeAcademic = await academic.findOne({ where: { active_sem: 1 } })
         const academic_sem = activeAcademic.academic_sem
+        const academic_year = activeAcademic.academic_year
 
         const existTutor = await mentor.findAll({
             where: {
-                staff_id, staff_name, graduate, category,
+                staff_id, staff_name, graduate, category, academic_year,
                 dept_id, dept_name, batch, degree, section, academic_sem
             }
         })
@@ -181,7 +172,7 @@ route.post('/newtutoradded', async (req, res) => {
         if (existTutor.length > 0) { return res.status(409).json({ message: "Tutor Already Exists" }) }
 
         const newMentorCreated = await mentor.create({
-            staff_id, staff_name, graduate, category,
+            staff_id, staff_name, graduate, category, academic_year,
             dept_id, dept_name, batch, degree, section, academic_sem
         })
 
@@ -199,15 +190,13 @@ route.post('/newtutoradded', async (req, res) => {
 
 route.put("/mentor/:id", async (req, res) => {
 
-    const { id } = req.params;
     const { batch, staff_name, category, academic_sem, academic_year, degree, dept_name, section, s_no, staff_id } = req.body;
-    // console.log(req.body)
 
     try {
 
         const [updated] = await mentor.update(
             { batch, staff_name, category, degree, dept_name, section, staff_id },
-            { where: { s_no: s_no, academic_sem, academic_year } }
+            { where: { s_no: s_no, academic_sem, academic_year  } }
         )
         if (updated) { res.status(200).json({ message: 'Mentor with staff ID ${id} updated successfully.' }) }
         else { res.status(404).json({ error: 'Mentor with staff ID ${id} not found.' }) }
@@ -225,7 +214,6 @@ route.put("/mentor/:id", async (req, res) => {
 route.delete('/mentor/:id', async (req, res) => {
 
     const { id } = req.params;
-    console.log(id)
 
     try {
 
