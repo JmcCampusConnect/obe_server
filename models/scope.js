@@ -1,18 +1,26 @@
 const { DataTypes } = require('sequelize');
 const sequelize_conn = require('./dbconnection');
 
-const scope = sequelize_conn.define('scope',
+const scope = sequelize_conn.define('scope', 
 {
     staff_id: {
         type: DataTypes.STRING,
         allowNull: false,
         primaryKey: true
     },
+    staff_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
     dashboard: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
     course_list: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    relationship_matrix: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
@@ -24,15 +32,11 @@ const scope = sequelize_conn.define('scope',
         type: DataTypes.INTEGER,
         allowNull: true
     },
-    program_outcome: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
     program_specific_outcome: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
-    obe_report: {
+    program_outcome: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
@@ -48,7 +52,7 @@ const scope = sequelize_conn.define('scope',
         type: DataTypes.INTEGER,
         allowNull: true
     },
-    relationship_matrix: {
+    obe_report: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
@@ -56,10 +60,10 @@ const scope = sequelize_conn.define('scope',
         type: DataTypes.INTEGER,
         allowNull: true
     }
-}, 
-{
-    timestamps: false,
-    freezeTableName: true
-});
+},
+    {
+        timestamps: false,
+        freezeTableName: true
+    });
 
 module.exports = scope;

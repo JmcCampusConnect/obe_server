@@ -14,11 +14,8 @@ route.post('/deptStatus', async (req, res) => {
 
     const { staff_id } = req.body;
 
-    try 
-    {
-        const academicdata = await academic.findOne({
-            where: { active_sem: 1 }
-        })
+    try {
+        const academicdata = await academic.findOne({ where: { active_sem: 1 } })
 
         const user = await hod.findAll({
             where: { staff_id },
@@ -26,13 +23,10 @@ route.post('/deptStatus', async (req, res) => {
             raw: true
         })
 
-        if (user.length > 0) 
-        {
+        if (user.length > 0) {
+
             const reportDetails = [];
-
-            for (const { category, dept_id, dept_name } of user) 
-            {
-
+            for (const { category, dept_id, dept_name } of user) {
                 const reportInfo = await report.findAll({
                     where: {
                         category: category,
@@ -51,11 +45,7 @@ route.post('/deptStatus', async (req, res) => {
                 // console.log(reportInfo.length)
 
                 const courseInfo = await coursemapping.findAll({
-                    where: { 
-                        category, 
-                        dept_name,
-                        academic_sem: academicdata.academic_sem 
-                    },
+                    where: {  category, dept_name, academic_sem: academicdata.academic_sem },
                     raw: true
                 });
 
@@ -68,7 +58,7 @@ route.post('/deptStatus', async (req, res) => {
                         staff.course_code === userReport.course_code &&
                         staff.category === userReport.category &&
                         staff.section === userReport.section &&
-                        staff.dept_name === userReport.dept_name 
+                        staff.dept_name === userReport.dept_name
                     )
 
                     return {
@@ -82,7 +72,7 @@ route.post('/deptStatus', async (req, res) => {
                         staff_name: matchingStaff.staff_name,
                         semester: matchingStaff ?
                             (matchingStaff.semester === 1 || matchingStaff.semester === 2) ? 1 :
-                            (matchingStaff.semester === 3 || matchingStaff.semester === 4) ? 2 : 3 : 'N/A'
+                                (matchingStaff.semester === 3 || matchingStaff.semester === 4) ? 2 : 3 : 'N/A'
                     };
                 })
                 reportDetails.push(...details);

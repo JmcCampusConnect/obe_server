@@ -27,33 +27,30 @@ route.post('/newstaff', async (req, res) => {
     const { staff_id, staff_name, staff_dept, staff_category, password, dept_category, permissions } = req.body;
 
     try {
-        const newStaff = await staffmaster.create(
-            {
-                staff_id: staff_id,
-                staff_name: staff_name,
-                staff_dept: staff_dept,
-                dept_category: dept_category,
-                staff_category: staff_category,
-                staff_pass: password
-            })
+        const newStaff = await staffmaster.create({
+            staff_id: staff_id,
+            staff_name: staff_name,
+            staff_dept: staff_dept,
+            dept_category: dept_category,
+            staff_category: staff_category,
+            staff_pass: password
+        })
 
-        const newScope = await scope.create(
-            {
-                staff_id: staff_id,
-                dashboard: permissions.dashboard ? 1 : 0,
-                course_list: permissions.course ? 1 : 0,
-                course_outcome: permissions.co ? 1 : 0,
-                student_outcome: permissions.so ? 1 : 0,
-                program_outcome: permissions.po ? 1 : 0,
-                program_specific_outcome: permissions.pso ? 1 : 0,
-                mentor_report: permissions.tutor ? 1 : 0,
-                hod_report: permissions.hod ? 1 : 0,
-                report: permissions.report ? 1 : 0,
-                input_files: permissions.input ? 1 : 0,
-                manage: permissions.manage ? 1 : 0,
-                relationship_matrix: permissions.rsm ? 1 : 0,
-                settings: permissions.setting ? 1 : 0,
-            })
+        await scope.create({
+            staff_id: staff_id, staff_name: staff_name,
+            dashboard: permissions.dashboard ? 1 : 0,
+            course_list: permissions.course ? 1 : 0,
+            relationship_matrix: permissions.rsm ? 1 : 0,
+            course_outcome: permissions.co ? 1 : 0,
+            student_outcome: permissions.so ? 1 : 0,
+            program_outcome: permissions.po ? 1 : 0,
+            program_specific_outcome: permissions.pso ? 1 : 0,
+            work_progress_report: permissions.wpr ? 1 : 0,
+            input_files: permissions.input ? 1 : 0,
+            manage: permissions.manage ? 1 : 0,
+            obe_report: permissions.obereport ? 1 : 0,
+            settings: permissions.setting ? 1 : 0,
+        })
         return res.json({ message: 'New Staff and Permissions Added Successfully', newStaff });
     }
     catch (err) {
@@ -137,9 +134,9 @@ route.get('/mentor', async (req, res) => {
     try {
 
         const activeAcademic = await academic.findOne({ where: { active_sem: 1 } })
-        const mentorData = await mentor.findAll( { where: { academic_sem: activeAcademic.academic_sem } })
+        const mentorData = await mentor.findAll({ where: { academic_sem: activeAcademic.academic_sem } })
         const allStaff = await staffmaster.findAll({ attributes: ['staff_id', 'staff_name'] })
-        const staffDeptDetails = await mentor.findAll({ attributes: ['graduate', 'dept_id', 'category', 'degree', 'dept_name', 'section', 'batch']})
+        const staffDeptDetails = await mentor.findAll({ attributes: ['graduate', 'dept_id', 'category', 'degree', 'dept_name', 'section', 'batch'] })
         res.json({ mentorData: mentorData, staff_data: allStaff, 'deptDetails': staffDeptDetails });
     }
     catch (err) {
@@ -179,7 +176,7 @@ route.post('/newtutoradded', async (req, res) => {
         res.status(201).json({ message: "New Tutor Added", mentor: newMentorCreated });
     }
     catch (err) {
-        console.error('Error in adding new tutor : ', err); 
+        console.error('Error in adding new tutor : ', err);
         res.status(500).json({ error: "An error occurred while adding the record." });
     }
 })
@@ -196,7 +193,7 @@ route.put("/mentor/:id", async (req, res) => {
 
         const [updated] = await mentor.update(
             { batch, staff_name, category, degree, dept_name, section, staff_id },
-            { where: { s_no: s_no, academic_sem, academic_year  } }
+            { where: { s_no: s_no, academic_sem, academic_year } }
         )
         if (updated) { res.status(200).json({ message: 'Mentor with staff ID ${id} updated successfully.' }) }
         else { res.status(404).json({ error: 'Mentor with staff ID ${id} not found.' }) }
@@ -417,7 +414,7 @@ route.get('/getstaff', async (req, res) => {
 route.get('/staffdata', async (req, res) => {
 
     try {
-        
+
         const { newTuturId } = req.query;
 
         if (!newTuturId || newTuturId.trim() === "") { return res.status(400).json({ message: "Invalid or missing newTuturId" }) }
