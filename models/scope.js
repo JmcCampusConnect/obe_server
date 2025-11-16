@@ -1,8 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize_conn = require('./dbconnection');
 
-const scope = sequelize_conn.define('scope', 
-{
+const scope = sequelize_conn.define('scope', {
     staff_id: {
         type: DataTypes.STRING,
         allowNull: false,
