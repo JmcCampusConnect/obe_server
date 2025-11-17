@@ -27,6 +27,7 @@ route.post('/newstaff', async (req, res) => {
     const { staff_id, staff_name, staff_dept, staff_category, password, dept_category, permissions } = req.body;
 
     try {
+
         const newStaff = await staffmaster.create({
             staff_id: staff_id,
             staff_name: staff_name,

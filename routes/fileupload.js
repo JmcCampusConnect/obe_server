@@ -27,6 +27,7 @@ const coursemaster = require('../models/coursemaster');
 route.post('/staffmaster', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -62,6 +63,7 @@ route.post('/staffmaster', upload.single('file'), async (req, res) => {
 route.post('/coursemapping', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -120,6 +122,7 @@ route.post('/coursemapping', upload.single('file'), async (req, res) => {
 route.post('/studentmaster', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -160,6 +163,7 @@ route.post('/studentmaster', upload.single('file'), async (req, res) => {
 route.post('/markentry', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -199,8 +203,8 @@ route.post('/markentry', upload.single('file'), async (req, res) => {
             ese_mot: row.ese_mot,
             ese_hot: row.ese_hot,
             ese_total: row.ese_total,
-            academic_sem: academicSemester,
-            academic_year: academicYear
+            academic_sem: row.academic_sem,
+            academic_year: row.academic_year
         }));
 
         await markentry.bulkCreate(mark, {});
@@ -219,11 +223,10 @@ route.post('/markentry', upload.single('file'), async (req, res) => {
 route.post('/hod', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('File Upload Failed');
-        }
+        if (!file) { return res.status(400).send('File Upload Failed') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -265,24 +268,19 @@ route.post('/hod', upload.single('file'), async (req, res) => {
 route.post('/mentor', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('File Upload Failed');
-        }
+        if (!file) { return res.status(400).send('File Upload Failed') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(worksheet);
 
-        const activeAcademicSem = await academic.findOne({
-            where: { active_sem: 1 }
-        });
+        const activeAcademicSem = await academic.findOne({ where: { active_sem: 1 } });
 
-        if (!activeAcademicSem) {
-            return res.status(400).send('No Active Academic Year Found');
-        }
+        if (!activeAcademicSem) { return res.status(400).send('No Active Academic Year Found') }
 
         const academicSemester = activeAcademicSem.academic_sem;
         const academicYear = activeAcademicSem.academic_year;
@@ -307,7 +305,7 @@ route.post('/mentor', upload.single('file'), async (req, res) => {
             //     { where: { staff_id: row.staff_id } }
             // );
         }
-        res.status(200).send('Mentor Data and Scope Updated Successfully');
+        res.status(200).send('Mentor data inserted successfully');
     }
     catch (error) {
         console.error('Error Processing Mentor Upload:', error);
@@ -322,11 +320,10 @@ route.post('/mentor', upload.single('file'), async (req, res) => {
 route.post('/scope', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('No File Uploaded.');
-        }
+        if (!file) { return res.status(400).send('No File Uploaded.') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -363,6 +360,7 @@ route.post('/scope', upload.single('file'), async (req, res) => {
 // ESE Mark Entry File Upload
 
 function logIssue(message) {
+
     const logDir = path.join(__dirname, 'logs');
     if (!fs.existsSync(logDir)) {
         fs.mkdirSync(logDir);
@@ -374,7 +372,7 @@ function logIssue(message) {
 }
 
 route.post('/ese', upload.single('file'), async (req, res) => {
-    
+
     try {
 
         const file = req.file;
@@ -390,7 +388,7 @@ route.post('/ese', upload.single('file'), async (req, res) => {
         const BATCH_SIZE = 1000;
         let processed = 0;
 
-        req.on('aborted', () => { logIssue(`❌ Client aborted request after processing ${processed} rows`)});
+        req.on('aborted', () => { logIssue(`❌ Client aborted request after processing ${processed} rows`) });
 
         for (let i = 0; i < rows.length; i += BATCH_SIZE) {
             const batch = rows.slice(i, i + BATCH_SIZE);
@@ -410,11 +408,12 @@ route.post('/ese', upload.single('file'), async (req, res) => {
                             course_code
                         }
                     })
-                    if (affectedRows > 0) { processed += 1;
+                    if (affectedRows > 0) {
+                        processed += 1;
                         // logIssue(`✅ Updated reg_no: ${reg_no}, course_code: ${course_code}`);
-                    } 
+                    }
                     // else { logIssue(`⚠️ Row not found for reg_no: ${reg_no}, course_code: ${course_code}`)}
-                } catch (updateError) { logIssue(`❌ Error updating reg_no: ${reg_no}, course_code: ${course_code}. Error: ${updateError.message}`)}
+                } catch (updateError) { logIssue(`❌ Error updating reg_no: ${reg_no}, course_code: ${course_code}. Error: ${updateError.message}`) }
             }
         }
         fs.unlinkSync(file.path);
@@ -433,43 +432,37 @@ route.post('/ese', upload.single('file'), async (req, res) => {
 route.post('/report', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('File Upload Failed');
-        }
+        if (!file) { return res.status(400).send('File Upload Failed') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(worksheet);
 
-        const activeAcademic = await academic.findOne({
-            where: { active_sem: 1 }
-        });
+        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } });
 
-        if (!activeAcademic) {
-            return res.status(400).send('No Active Academic Year Found');
-        }
+        if (!activeAcademic) { return res.status(400).send('No Active Academic Year Found') }
 
         const activeSemester = activeAcademic.academic_sem;
 
         await report.destroy({ where: {}, truncate: true });
 
-        const reports = rows.map(row => (
-            {
-                staff_id: row.staff_id,
-                course_code: row.course_code,
-                category: row.category,
-                section: row.section,
-                dept_name: row.dept_name,
-                cia_1: row.cia_1,
-                cia_2: row.cia_2,
-                ass_1: row.ass_1,
-                ass_2: row.ass_2,
-                ese: row.ese,
-                academic_sem: activeSemester
-            }));
+        const reports = rows.map(row => ({
+            staff_id: row.staff_id,
+            course_code: row.course_code,
+            category: row.category,
+            section: row.section,
+            dept_name: row.dept_name,
+            cia_1: row.cia_1,
+            cia_2: row.cia_2,
+            ass_1: row.ass_1,
+            ass_2: row.ass_2,
+            ese: row.ese,
+            academic_sem: activeSemester
+        }));
 
         await report.bulkCreate(reports);
         res.status(200).send('Report Data Imported Successfully');
@@ -487,11 +480,10 @@ route.post('/report', upload.single('file'), async (req, res) => {
 route.post('/calculation', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('No File Uploaded.');
-        }
+        if (!file) { return res.status(400).send('No File Uploaded.') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -531,14 +523,11 @@ route.post('/calculation', upload.single('file'), async (req, res) => {
             co_thresh_value: row.co_thresh_value
         }));
 
-        for (const data of calculations) {
-            await calculation.upsert(data);
-        }
-
+        for (const data of calculations) { await calculation.upsert(data) }
         res.status(200).send('Calculation Table Imported Successfully Updated Successfully');
     }
     catch (error) {
-        console.error("Error in upload:", error);
+        console.error("Error in upload : ", error);
         res.status(500).send('An error occurred');
     }
 })
@@ -550,11 +539,10 @@ route.post('/calculation', upload.single('file'), async (req, res) => {
 route.post('/academic', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('No File Uploaded.');
-        }
+        if (!file) { return res.status(400).send('No File Uploaded.') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
@@ -565,12 +553,9 @@ route.post('/academic', upload.single('file'), async (req, res) => {
             academic_year: row.academic_year,
             sem: row.sem,
             active_sem: row.active_sem,
-        }));
+        }))
 
-        for (const data of calculations) {
-            await academic.upsert(data);
-        }
-
+        for (const data of calculations) { await academic.upsert(data) }
         res.status(200).send('Academic Table Imported Successfully Updated Successfully');
     }
     catch (error) {
@@ -586,84 +571,80 @@ route.post('/academic', upload.single('file'), async (req, res) => {
 route.post('/rsmatrix', upload.single('file'), async (req, res) => {
 
     try {
+
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('No File Uploaded.');
-        }
+        if (!file) { return res.status(400).send('No File Uploaded.') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(worksheet);
 
-        const rsmatrixs = rows.map(row => (
-            {
-                academic_sem: row.academic_sem,
-                dept_id: row.dept_id,
-                course_code: row.course_code,
-                co1_po1: row.co1_po1,
-                co1_po2: row.co1_po2,
-                co1_po3: row.co1_po3,
-                co1_po4: row.co1_po4,
-                co1_po5: row.co1_po5,
-                co1_pso1: row.co1_pso1,
-                co1_pso2: row.co1_pso2,
-                co1_pso3: row.co1_pso3,
-                co1_pso4: row.co1_pso4,
-                co1_pso5: row.co1_pso5,
-                co1_mean: row.co1_mean,
-                co2_po1: row.co2_po1,
-                co2_po2: row.co2_po2,
-                co2_po3: row.co2_po3,
-                co2_po4: row.co2_po4,
-                co2_po5: row.co2_po5,
-                co2_pso1: row.co2_pso1,
-                co2_pso2: row.co2_pso2,
-                co2_pso3: row.co2_pso3,
-                co2_pso4: row.co2_pso4,
-                co2_pso5: row.co2_pso5,
-                co2_mean: row.co2_mean,
-                co3_po1: row.co3_po1,
-                co3_po2: row.co3_po2,
-                co3_po3: row.co3_po3,
-                co3_po4: row.co3_po4,
-                co3_po5: row.co3_po5,
-                co3_pso1: row.co3_pso1,
-                co3_pso2: row.co3_pso2,
-                co3_pso3: row.co3_pso3,
-                co3_pso4: row.co3_pso4,
-                co3_pso5: row.co3_pso5,
-                co3_mean: row.co3_mean,
-                co4_po1: row.co4_po1,
-                co4_po2: row.co4_po2,
-                co4_po3: row.co4_po3,
-                co4_po4: row.co4_po4,
-                co4_po5: row.co4_po5,
-                co4_pso1: row.co4_pso1,
-                co4_pso2: row.co4_pso2,
-                co4_pso3: row.co4_pso3,
-                co4_pso4: row.co4_pso4,
-                co4_pso5: row.co4_pso5,
-                co4_mean: row.co4_mean,
-                co5_po1: row.co5_po1,
-                co5_po2: row.co5_po2,
-                co5_po3: row.co5_po3,
-                co5_po4: row.co5_po4,
-                co5_po5: row.co5_po5,
-                co5_pso1: row.co5_pso1,
-                co5_pso2: row.co5_pso2,
-                co5_pso3: row.co5_pso3,
-                co5_pso4: row.co5_pso4,
-                co5_pso5: row.co5_pso5,
-                co5_mean: row.co5_mean,
-                mean: row.mean,
-                olrel: row.olrel
-            }))
+        const rsmatrixs = rows.map(row => ({
+            academic_sem: row.academic_sem,
+            dept_id: row.dept_id,
+            course_code: row.course_code,
+            co1_po1: row.co1_po1,
+            co1_po2: row.co1_po2,
+            co1_po3: row.co1_po3,
+            co1_po4: row.co1_po4,
+            co1_po5: row.co1_po5,
+            co1_pso1: row.co1_pso1,
+            co1_pso2: row.co1_pso2,
+            co1_pso3: row.co1_pso3,
+            co1_pso4: row.co1_pso4,
+            co1_pso5: row.co1_pso5,
+            co1_mean: row.co1_mean,
+            co2_po1: row.co2_po1,
+            co2_po2: row.co2_po2,
+            co2_po3: row.co2_po3,
+            co2_po4: row.co2_po4,
+            co2_po5: row.co2_po5,
+            co2_pso1: row.co2_pso1,
+            co2_pso2: row.co2_pso2,
+            co2_pso3: row.co2_pso3,
+            co2_pso4: row.co2_pso4,
+            co2_pso5: row.co2_pso5,
+            co2_mean: row.co2_mean,
+            co3_po1: row.co3_po1,
+            co3_po2: row.co3_po2,
+            co3_po3: row.co3_po3,
+            co3_po4: row.co3_po4,
+            co3_po5: row.co3_po5,
+            co3_pso1: row.co3_pso1,
+            co3_pso2: row.co3_pso2,
+            co3_pso3: row.co3_pso3,
+            co3_pso4: row.co3_pso4,
+            co3_pso5: row.co3_pso5,
+            co3_mean: row.co3_mean,
+            co4_po1: row.co4_po1,
+            co4_po2: row.co4_po2,
+            co4_po3: row.co4_po3,
+            co4_po4: row.co4_po4,
+            co4_po5: row.co4_po5,
+            co4_pso1: row.co4_pso1,
+            co4_pso2: row.co4_pso2,
+            co4_pso3: row.co4_pso3,
+            co4_pso4: row.co4_pso4,
+            co4_pso5: row.co4_pso5,
+            co4_mean: row.co4_mean,
+            co5_po1: row.co5_po1,
+            co5_po2: row.co5_po2,
+            co5_po3: row.co5_po3,
+            co5_po4: row.co5_po4,
+            co5_po5: row.co5_po5,
+            co5_pso1: row.co5_pso1,
+            co5_pso2: row.co5_pso2,
+            co5_pso3: row.co5_pso3,
+            co5_pso4: row.co5_pso4,
+            co5_pso5: row.co5_pso5,
+            co5_mean: row.co5_mean,
+            mean: row.mean,
+            olrel: row.olrel
+        }))
 
-        for (const data of rsmatrixs) {
-            await rsmatrix.upsert(data);
-        }
+        for (const data of rsmatrixs) { await rsmatrix.upsert(data) }
         res.status(200).send('RS Matrix Table Imported Successfully Updated Successfully');
     }
     catch (error) {
@@ -679,45 +660,34 @@ route.post('/rsmatrix', upload.single('file'), async (req, res) => {
 route.post('/coursemaster', upload.single('file'), async (req, res) => {
 
     try {
-        const file = req.file;
 
-        if (!file) {
-            return res.status(400).send('File Upload Failed');
-        }
+        const file = req.file;
+        if (!file) { return res.status(400).send('File Upload Failed') }
 
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(worksheet);
 
-        const activeAcademic = await academic.findOne({
-            where: { active_sem: 1 }
-        });
-
-        if (!activeAcademic) {
-            return res.status(400).send('No Active Academic Year Found');
-        }
-
+        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } });
+        if (!activeAcademic) { return res.status(400).send('No Active Academic Year Found') }
         const academicSemester = activeAcademic.academic_sem;
         const academicYear = activeAcademic.academic_year;
 
-        const reports = rows.map(row => (
-            {
-                s_no: row.s_no,
-                graduate: row.graduate,
-                course_code: row.course_code,
-                course_title: row.course_title,
-                dept_id: row.dept_id,
-                dept_name: row.dept_name,
-                degree: row.degree,
-                semester: row.semester,
-                academic_sem: academicSemester,
-                academic_year: academicYear
-            }));
+        const reports = rows.map(row => ({
+            s_no: row.s_no,
+            graduate: row.graduate,
+            course_code: row.course_code,
+            course_title: row.course_title,
+            dept_id: row.dept_id,
+            dept_name: row.dept_name,
+            degree: row.degree,
+            semester: row.semester,
+            academic_sem: academicSemester,
+            academic_year: academicYear
+        }));
 
-        for (const data of reports) {
-            await coursemaster.upsert(data);
-        }
+        for (const data of reports) { await coursemaster.upsert(data) }
         res.status(200).send('Coursemaster Data Imported Successfully');
     }
     catch (error) {
