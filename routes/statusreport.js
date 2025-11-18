@@ -6,6 +6,7 @@ const rsmatrix = require('../models/rsmatrix');
 const staffmaster = require('../models/staffmaster');
 const academic = require('../models/academic');
 const markentry = require('../models/markentry');
+const { Sequelize } = require('sequelize');
 
 // ------------------------------------------------------------------------------------------------------- //
 
@@ -118,7 +119,7 @@ route.post('/allmatrixreport', async (req, res) => {
 
         const matrixAllReport = await coursemapping.findAll({ where: { academic_sem: academic_sem } })
         if (!matrixAllReport) { throw new Error('No matrix report found.') }
-        const rsMatrix = await rsmatrix.findAll({ where: { academic_sem: academic_sem } });
+        const rsMatrix = await rsmatrix.findAll();
         if (!rsMatrix) { throw new Error('No rsmatrix data found.') }
 
         const reportWithStatus = matrixAllReport.map(report => {
@@ -143,22 +144,26 @@ route.post('/matrixcount', async (req, res) => {
 
     try {
 
-        const uniqueCourseCount = await coursemapping.count({
-            where: { academic_sem: academic_sem, },
-            distinct: true,
-            col: 'course_code'
-        })
+        const courses = await coursemapping.findAll({
+            where: { academic_sem },
+            attributes: [
+                [Sequelize.fn('DISTINCT', Sequelize.col('course_code')), 'course_code']
+            ],
+            raw: true
+        });
 
+        const courseCodeList = courses.map(item => item.course_code);
         const completeCount = await rsmatrix.count({
-            where: { academic_sem: academic_sem },
+            where: { course_code: courseCodeList },
             distinct: true,
             col: 'course_code'
-        })
+        });
 
+        const uniqueCourseCount = courseCodeList.length;
         res.json({ uniqueCourseCount, completeCount });
     }
     catch (err) {
-        console.error('Error fetching martix count : ', err);
+        console.error('Error fetching matrix count : ', err);
         res.status(500).send('Error Fetching Data');
     }
 })
