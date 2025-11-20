@@ -355,7 +355,6 @@ const secretKey = process.env.SECRET_KEY;
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Validation Coding
 
 app.post('/login', async (req, res) => {
 
@@ -363,19 +362,103 @@ app.post('/login', async (req, res) => {
 
     try {
 
-        const user = await staffmaster.findOne({ where: { staff_id: staff_id } })
+        const user = await staffmaster.findOne({ where: { staff_id } });
 
-        if (user) {
-            if (user.staff_pass === staff_pass) { return res.json({ success: true, message: "Login Successful" }) }
-            else { return res.json({ success: false, message: "Invalid Password" }) }
+        if (!user) {
+            return res.json({ success: false, message: "User Not Found" });
         }
-        else { return res.json({ success: false, message: "User Not Found" }) }
-    }
-    catch (error) {
-        console.error('Error during Login : ', error);
-        return res.status(500).json({ success: false, message: "Internal Server Error" });
+
+        if (user.staff_pass !== staff_pass) {
+            return res.json({ success: false, message: "Invalid Password" });
+        }
+
+        const isWeakPassword =
+            user.staff_pass.length < 8 ||
+            !/[A-Z]/.test(user.staff_pass) ||
+            !/[a-z]/.test(user.staff_pass) ||
+            !/\d/.test(user.staff_pass) ||
+            !/[!@#$%^&*()_+={}[\]:;"'<,>.?/\\|~-]/.test(user.staff_pass);
+
+        const needsPasswordChange = user.is_default_password === true || isWeakPassword;
+
+        if (needsPasswordChange) {
+            return res.json({
+                success: true,
+                message: "Password change required",
+                needsPasswordChange: true
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "Login Successful",
+            needsPasswordChange: false
+        });
+
+    } catch (error) {
+        console.error("Error during login:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
     }
 });
+
+// ------------------------------------------------------------------------------------------------------- //
+
+// Password Update for staff for weak password
+
+app.post('/update-password', async (req, res) => {
+
+    const { staff_id, old_password, new_password } = req.body;
+
+    try {
+
+        const user = await staffmaster.findOne({ where: { staff_id } });
+
+        if (!user) {
+            return res.json({ success: false, message: "User Not Found" });
+        }
+
+        if (user.staff_pass !== old_password) {
+            return res.json({ success: false, message: "Old password is incorrect" });
+        }
+
+        const isWeakPassword =
+            new_password.length < 8 ||
+            !/[A-Z]/.test(new_password) ||
+            !/[a-z]/.test(new_password) ||
+            !/\d/.test(new_password) ||
+            !/[!@#$%^&*()_+={}[\]:;"'<,>.?/\\|~-]/.test(new_password);
+
+        if (isWeakPassword) {
+            return res.json({
+                success: false,
+                message: "New password does not meet strength requirements."
+            });
+        }
+
+        await staffmaster.update(
+            {
+                staff_pass: new_password,
+                is_default_password: false 
+            },
+            { where: { staff_id } }
+        );
+
+        return res.json({
+            success: true,
+            message: "Password updated successfully"
+        });
+
+    } catch (error) {
+        console.error("Password update error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+})
 
 // ------------------------------------------------------------------------------------------------------- //
 
