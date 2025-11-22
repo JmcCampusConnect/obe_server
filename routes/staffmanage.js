@@ -81,15 +81,15 @@ route.put('/staffupdate', async (req, res) => {
 
         const updatedStaff = await staffmaster.findOne({ where: { staff_id: newstaffid } });
 
-        await coursemapping.update({
-            category: newStaffCategory,
-            staff_name: newstaffname
-        }, { where: { staff_id: newstaffid } })
+        // await coursemapping.update({
+        //     category: newStaffCategory,
+        //     staff_name: newstaffname
+        // }, { where: { staff_id: newstaffid } })
 
-        await report.update({
-            category: newStaffCategory,
-            staff_name: newstaffname
-        }, { where: { staff_id: newstaffid } })
+        // await report.update({
+        //     category: newStaffCategory,
+        //     staff_name: newstaffname
+        // }, { where: { staff_id: newstaffid } })
 
         await hod.update({
             category: newStaffCategory,
