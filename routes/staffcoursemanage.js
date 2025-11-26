@@ -227,37 +227,39 @@ router.post('/scmNewStaff', async (req, res) => {
 // Staff Course Manage Edit
 
 router.post('/staffCourseEdit', async (req, res) => {
+
     const editData = req.body;
-    // console.log('Received editData:', editData);
+
+    if (!editData.s_no) { return res.status(400).json({ ok: false, error: "Missing s_no for update." }) }
 
     try {
+        const {
+            s_no, staff_id, staff_name, category, batch, section, dept_id, degree,
+            dept_name, semester, course_code, course_title, academic_sem, active_sem
+        } = editData;
+
         const updated = await coursemapping.update(
             {
-                // fields to update
-                staff_id: editData.staff_id,
-                staff_name: editData.staff_name,
-                category: editData.category,
-                batch: editData.batch,
-                section: editData.section,
-                dept_id: editData.dept_id,
-                degree: editData.degree,
-                dept_name: editData.dept_name,
-                semester: editData.semester,
-                course_code: editData.course_code,
-                course_title: editData.course_title,
-                active_sem: editData.academic_sem || editData.active_sem,
+                staff_id, staff_name, category, batch,
+                section, dept_id, degree, dept_name,
+                semester, course_code, course_title,
+                active_sem: academic_sem || active_sem,
             },
-            {
-                where: {
-                    s_no: editData.s_no,
-                },
-            }
+            { where: { s_no } }
         );
 
+        const updatedReport = await report.update(
+            { staff_id, course_code, category, section, dept_name },
+            { where: { s_no } }
+        );
 
-        return res.json({ ok: true, updated });
+        return res.json({
+            ok: true, message: "Updated successfully",
+            updated, updatedReport
+        });
+
     } catch (error) {
-        console.error('Error updating staff course:', error);
+        console.error('Error updating staff course : ', error);
         return res.status(500).json({ ok: false, error: error.message });
     }
 })
