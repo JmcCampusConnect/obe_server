@@ -57,6 +57,8 @@ route.post('/deptstatusreport', async (req, res) => {
                 }
             }))
 
+            console.log(staffDetails)
+
             deptReportStatus = reportData.map(match => {
                 const matchStaff = staffDetails.find(
                     staff => staff.staff_id === match.staff_id && staff.course_code === match.course_code
@@ -66,7 +68,8 @@ route.post('/deptstatusreport', async (req, res) => {
                     staff_name: matchStaff ? matchStaff.staff_name : 'unknown',
                     dept_id: matchStaff ? matchStaff.dept_id : 'unknown',
                     dept_name: matchStaff ? matchStaff.dept_name : 'unknown',
-                    course_title: matchStaff ? matchStaff.course_title : ''
+                    course_title: matchStaff ? matchStaff.course_title : '',
+                    semester: matchStaff ? matchStaff.semester : ''
                 }
             })
         }
