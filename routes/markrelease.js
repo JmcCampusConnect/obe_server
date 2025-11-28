@@ -25,7 +25,9 @@ route.get('/reportdata', async (req, res) => {
                     ...match.toJSON(),
                     staff_name: matchStaff.staff_name,
                     dept_id: matchStaff.dept_id,
-                    course_title: matchStaff.course_title
+                    course_title: matchStaff.course_title,
+                    semester: matchStaff.semester,
+                    category: matchStaff.category,
                 }
             }
             else { return { ...match.toJSON(), staff_name: 'unknown', dept_id: 'unknown' } }

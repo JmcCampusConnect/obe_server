@@ -57,8 +57,6 @@ route.post('/deptstatusreport', async (req, res) => {
                 }
             }))
 
-            console.log(staffDetails)
-
             deptReportStatus = reportData.map(match => {
                 const matchStaff = staffDetails.find(
                     staff => staff.staff_id === match.staff_id && staff.course_code === match.course_code
