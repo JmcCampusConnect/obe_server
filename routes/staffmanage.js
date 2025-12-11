@@ -186,15 +186,15 @@ route.post('/newtutoradded', async (req, res) => {
 
 // Tutor Edit
 
-route.put("/mentor/:id", async (req, res) => {
+route.put("/mentor/:s_no", async (req, res) => {
 
-    const { batch, staff_name, category, academic_sem, academic_year, degree, dept_name, section, s_no, staff_id } = req.body;
+    const { batch, staff_name, category, academic_sem, academic_year, degree, dept_name, section, s_no, staff_id, dept_id } = req.body;
 
     try {
 
         const [updated] = await mentor.update(
-            { batch, staff_name, category, degree, dept_name, section, staff_id },
-            { where: { s_no: s_no, academic_sem, academic_year } }
+            { batch, staff_name, category, degree, dept_name, section, staff_id, dept_id },
+            { where: { s_no, academic_sem, academic_year } }
         )
         if (updated) { res.status(200).json({ message: 'Mentor with staff ID ${id} updated successfully.' }) }
         else { res.status(404).json({ error: 'Mentor with staff ID ${id} not found.' }) }
@@ -209,20 +209,20 @@ route.put("/mentor/:id", async (req, res) => {
 
 // Tutor Delete
 
-route.delete('/mentor/:id', async (req, res) => {
+route.delete('/mentor/:s_no', async (req, res) => {
 
-    const { id } = req.params;
+    const { s_no } = req.params;
 
     try {
 
         const activeAcademic = await academic.findOne({ where: { active_sem: 1 } })
 
         const deleted = await mentor.destroy({
-            where: { staff_id: id, academic_sem: activeAcademic.academic_sem }
+            where: { s_no, academic_sem: activeAcademic.academic_sem }
         })
 
-        if (deleted) { res.status(200).json({ message: `Mentor with Staff Id ${id} deleted Successfully.` }) }
-        else { res.json({ error: `Mentor with Staff Id ${id} not found.` }) }
+        if (deleted) { res.status(200).json({ message: `Mentor deleted Successfully.` }) }
+        else { res.json({ error: `Mentor not found.` }) }
 
     }
     catch (err) {

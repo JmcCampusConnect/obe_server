@@ -364,7 +364,7 @@ app.post('/login', async (req, res) => {
         const user = await staffmaster.findOne({ where: { staff_id } });
 
         if (!user) {
-            return res.json({ success: false, message: "User Not Found" });
+            return res.json({ success: false, message: "User not found" });
         }
 
         if (user.staff_pass !== staff_pass) {
@@ -416,7 +416,7 @@ app.post('/update-password', async (req, res) => {
         const user = await staffmaster.findOne({ where: { staff_id } });
 
         if (!user) {
-            return res.json({ success: false, message: "User Not Found" });
+            return res.json({ success: false, message: "User not found" });
         }
 
         if (user.staff_pass !== old_password) {
@@ -440,7 +440,7 @@ app.post('/update-password', async (req, res) => {
         await staffmaster.update(
             {
                 staff_pass: new_password,
-                is_default_password: false 
+                is_default_password: false
             },
             { where: { staff_id } }
         );
