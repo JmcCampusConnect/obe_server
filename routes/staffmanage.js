@@ -55,7 +55,7 @@ route.post('/newstaff', async (req, res) => {
         return res.json({ message: 'New Staff and Permissions Added Successfully', newStaff });
     }
     catch (err) {
-        console.error('Error Inserting Data into the DataBase:', err);
+        console.error('Error in adding new staff : ', err);
         return res.status(500).json({ message: 'Database error' });
     }
 })
@@ -284,7 +284,6 @@ route.get('/hodDropDownValues', async (req, res) => {
 route.post('/newhodadded', async (req, res) => {
 
     const { staff_id, hod_name, category, dept_id, dept_name, graduate } = req.body;
-    // console.log(req.body)
 
     try {
 
@@ -310,14 +309,12 @@ route.put('/hod/:id', async (req, res) => {
 
     const { id } = req.params;
     const { hod_name, graduate, dept_id, category, dept_name, s_no, staff_id } = req.body;
-    // console.log(req.body, req.params)
 
     try {
         const [updated] = await hod.update(
             { hod_name, graduate, dept_id, category, dept_name, staff_id },
             { where: { s_no: s_no } }
         )
-        // console.log(updated)
         if (updated) {
             res.status(200).json({ message: `HOD with staff ID ${id} updated Successfully.` });
         }
@@ -326,7 +323,7 @@ route.put('/hod/:id', async (req, res) => {
         }
     }
     catch (err) {
-        console.error(err);
+        console.error('Error in updating Hod : ', err);
         res.status(500).json({ error: 'An error occurred while updating the record.' });
     }
 })
@@ -338,12 +335,10 @@ route.put('/hod/:id', async (req, res) => {
 route.delete('/hod/:id', async (req, res) => {
 
     const { dept_id, staff_id, category, graduate } = req.body;
-    // console.log(req.body)
 
     try {
 
         const deleted = await hod.destroy({ where: { staff_id, dept_id, category, graduate } })
-        // console.log(deleted)
 
         if (deleted) {
             res.status(200).json({ message: `HOD with staff ID ${staff_id} deleted successfully.` });
