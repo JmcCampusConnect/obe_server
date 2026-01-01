@@ -244,16 +244,7 @@ route.post('/hod', upload.single('file'), async (req, res) => {
             });
         }
 
-        const staffIds = rows.map(row => row.staff_id);
-        await scope.update(
-            { hod_report: 1 },
-            {
-                where: {
-                    staff_id: staffIds,
-                },
-            }
-        )
-        res.status(200).send('HOD Data Imported and Scope Table Updated Successfully');
+        res.status(200).send('HOD Data imported successfully');
     }
     catch (error) {
         console.error('Error Processing HOD Upload :', error);
@@ -299,16 +290,11 @@ route.post('/mentor', upload.single('file'), async (req, res) => {
                 academic_sem: academicSemester,
                 academic_year: academicYear,
             })
-
-            // await scope.update(
-            //     { mentor_report: 1 },
-            //     { where: { staff_id: row.staff_id } }
-            // );
         }
         res.status(200).send('Mentor data inserted successfully');
     }
     catch (error) {
-        console.error('Error Processing Mentor Upload:', error);
+        console.error('Error Processing Mentor Upload : ', error);
         res.status(500).send('An error occurred while processing the mentor upload');
     }
 })
@@ -417,7 +403,7 @@ route.post('/ese', upload.single('file'), async (req, res) => {
             }
         }
         fs.unlinkSync(file.path);
-        res.status(200).send(`Mark Data Updated Successfully`);
+        res.status(200).send(`Ese mark updated successfully`);
 
     } catch (error) {
         logIssue(`❌ Upload Error: ${error.stack || error.message}`);
