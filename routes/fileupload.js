@@ -1,12 +1,9 @@
 const express = require('express');
 const route = express.Router();
 const multer = require('multer');
-const upload = multer({ dest: 'uploads' })
+const upload = multer({ dest: 'uploads' });
 const XLSX = require('xlsx');
 const fs = require('fs');
-const { Op } = require('sequelize');
-const path = require('path');
-
 const academic = require('../models/academic');
 const coursemapping = require('../models/coursemapping');
 const report = require('../models/report');
@@ -22,217 +19,195 @@ const coursemaster = require('../models/coursemaster');
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Staff Master File Upload
+// PROGRESS STORE
+
+const uploadProgress = {};
+
+// ------------------------------------------------------------------------------------------------------- //
+
+// GENERIC FUNCTION TO READ EXCEL
+
+function readExcel(file) {
+    const workbook = XLSX.readFile(file.path);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(worksheet);
+    fs.unlinkSync(file.path);
+    return rows;
+}
+
+// ------------------------------------------------------------------------------------------------------- //
+
+// STAFF MASTER
 
 route.post('/staffmaster', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        const staffData = rows.map(row => ({
-            staff_id: row.staff_id,
-            staff_category: row.staff_category,
-            staff_name: row.staff_name,
-            staff_pass: row.staff_pass,
-            staff_dept: row.staff_dept,
-            dept_category: row.dept_category
-        }))
-
-        for (const staff of staffData) {
-            await staffmaster.upsert(staff, {
-                where: { staff_id: staff.staff_id }
-            })
+        uploadProgress.staffmaster = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await staffmaster.upsert({
+                staff_id: row.staff_id,
+                staff_category: row.staff_category,
+                staff_name: row.staff_name,
+                staff_pass: row.staff_pass,
+                staff_dept: row.staff_dept,
+                dept_category: row.dept_category
+            });
+            uploadProgress.staffmaster.processed += 1;
         }
-        res.status(200).send('Staff Master Data Imported and Updated Successfully');
+        uploadProgress.staffmaster.processed = uploadProgress.staffmaster.total;
+        res.status(200).send('Staff Master Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.staffmaster;
+        console.error(error);
+        res.status(500).send('Error uploading Staff Master');
     }
-    catch (error) {
-        console.error('Error in updating Staff Data : ', error);
-        res.status(500).send('An Error Occurred');
+});
+
+// ------------------------------------------------------------------------------------------------------- //
+// STUDENT MASTER
+route.post('/studentmaster', upload.single('file'), async (req, res) => {
+
+    try {
+
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
+
+        uploadProgress.studentmaster = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await studentmaster.upsert({
+                reg_no: row.reg_no,
+                stu_name: row.stu_name,
+                dept_id: row.dept_id,
+                category: row.category,
+                semester: row.semester,
+                section: row.section,
+                batch: row.batch
+            });
+            uploadProgress.studentmaster.processed += 1;
+        }
+        uploadProgress.studentmaster.processed = uploadProgress.studentmaster.total;
+        res.status(200).send('Student Master Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.studentmaster;
+        console.error(error);
+        res.status(500).send('Error uploading Student Master');
     }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Course Mapping File Upload
+// COURSE MAPPING
 
 route.post('/coursemapping', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        const activeAcademicSem = await academic.findOne({
-            where: { active_sem: 1 }
-        });
+        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } });
+        if (!activeAcademic) return res.status(400).send('No active academic year');
 
-        if (!activeAcademicSem) {
-            return res.status(400).send('No Active Academic Year Found');
+        uploadProgress.coursemapping = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await coursemapping.upsert({
+                category: row.category,
+                batch: row.batch,
+                dept_id: row.dept_id,
+                degree: row.degree,
+                dept_name: row.dept_name,
+                semester: row.semester,
+                section: row.section,
+                course_code: row.course_code,
+                staff_id: row.staff_id,
+                staff_name: row.staff_name,
+                course_title: row.course_title,
+                academic_sem: activeAcademic.academic_sem
+            });
+            await report.upsert({
+                staff_id: row.staff_id,
+                course_code: row.course_code,
+                category: row.category,
+                section: row.section,
+                dept_name: row.dept_name,
+                academic_sem: activeAcademic.academic_sem
+            });
+            uploadProgress.coursemapping.processed += 1;
         }
-
-        const academicSemester = activeAcademicSem.academic_sem;
-
-        const course = rows.map(row => ({
-            category: row.category,
-            batch: row.batch,
-            dept_id: row.dept_id,
-            degree: row.degree,
-            dept_name: row.dept_name,
-            semester: row.semester,
-            section: row.section,
-            course_code: row.course_code,
-            staff_id: row.staff_id,
-            staff_name: row.staff_name,
-            course_title: row.course_title,
-            academic_sem: academicSemester
-        }))
-
-        await coursemapping.bulkCreate(course);
-
-        const reportData = rows.map(row => ({
-            staff_id: row.staff_id,
-            course_code: row.course_code,
-            category: row.category,
-            section: row.section,
-            dept_name: row.dept_name,
-            academic_sem: academicSemester
-        }))
-
-        await report.bulkCreate(reportData, { ignoreDuplicates: true });
-        res.status(200).send('Course Mapping Data Imported Successfully');
-    }
-    catch (error) {
+        uploadProgress.coursemapping.processed = uploadProgress.coursemapping.total;
+        res.status(200).send('Course Mapping Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.coursemapping;
         console.error(error);
-        res.status(500).send('An error occurred');
+        res.status(500).send('Error uploading Course Mapping');
     }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Student Master File Upload
-
-route.post('/studentmaster', upload.single('file'), async (req, res) => {
-
-    try {
-
-        const file = req.file;
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const activeAcademicSem = await academic.findOne({
-            where: { active_sem: 1 }
-        });
-
-        if (!activeAcademicSem) {
-            return res.status(400).send('No Active Academic Year Found');
-        }
-
-        const students = rows.map(row => ({
-            reg_no: row.reg_no,
-            stu_name: row.stu_name,
-            dept_id: row.dept_id,
-            category: row.category,
-            semester: row.semester,
-            section: row.section,
-            batch: row.batch,
-        }))
-
-        await studentmaster.bulkCreate(students, {});
-        res.status(200).send('Student Master Data Imported Successfully');
-    }
-    catch (error) {
-        console.error(error);
-        res.status(500).send('An error occurred');
-    }
-})
-
-// ------------------------------------------------------------------------------------------------------- //
-
-// Mark Entry File Upload
+// MARK ENTRY
 
 route.post('/markentry', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        const activeAcademicSem = await academic.findOne({
-            where: { active_sem: 1 }
-        });
-
-        if (!activeAcademicSem) {
-            return res.status(400).send('No Active Academic Year Found');
+        uploadProgress.markentry = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await markentry.upsert({
+                batch: row.batch,
+                category: row.category,
+                graduate: row.graduate,
+                dept_id: row.dept_id,
+                reg_no: row.reg_no,
+                course_code: row.course_code,
+                semester: row.semester,
+                c1_lot: row.c1_lot,
+                c1_mot: row.c1_mot,
+                c1_hot: row.c1_hot,
+                c1_total: row.c1_total,
+                c2_lot: row.c2_lot,
+                c2_mot: row.c2_mot,
+                c2_hot: row.c2_hot,
+                c2_total: row.c2_total,
+                a1_lot: row.a1_lot,
+                a2_lot: row.a2_lot,
+                ese_lot: row.ese_lot,
+                ese_mot: row.ese_mot,
+                ese_hot: row.ese_hot,
+                ese_total: row.ese_total,
+                academic_sem: row.academic_sem,
+                academic_year: row.academic_year
+            });
+            uploadProgress.markentry.processed += 1;
         }
-
-        const academicSemester = activeAcademicSem.academic_sem;
-        const academicYear = activeAcademicSem.academic_year;
-
-        const mark = rows.map(row => ({
-            batch: row.batch,
-            category: row.category,
-            graduate: row.graduate,
-            dept_id: row.dept_id,
-            reg_no: row.reg_no,
-            course_code: row.course_code,
-            semester: row.semester,
-            c1_lot: row.c1_lot,
-            c1_mot: row.c1_mot,
-            c1_hot: row.c1_hot,
-            c1_total: row.c1_total,
-            c2_lot: row.c2_lot,
-            c2_mot: row.c2_mot,
-            c2_hot: row.c2_hot,
-            c2_total: row.c2_total,
-            a1_lot: row.a1_lot,
-            a2_lot: row.a2_lot,
-            ese_lot: row.ese_lot,
-            ese_mot: row.ese_mot,
-            ese_hot: row.ese_hot,
-            ese_total: row.ese_total,
-            academic_sem: row.academic_sem,
-            academic_year: row.academic_year
-        }));
-
-        await markentry.bulkCreate(mark, {});
-        res.status(200).send('Mark Entry Data Imported Successfully');
-    }
-    catch (error) {
+        uploadProgress.markentry.processed = uploadProgress.markentry.total;
+        res.status(200).send('Mark Entry Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.markentry;
         console.error(error);
-        res.status(500).send('An error occurred');
+        res.status(500).send('Error uploading Mark Entry');
     }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Hod File Upload
+// HOD
 
 route.post('/hod', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        if (!file) { return res.status(400).send('File Upload Failed') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
+        uploadProgress.hod = { total: rows.length, processed: 0 };
         for (const row of rows) {
             await hod.upsert({
                 graduate: row.graduate,
@@ -240,42 +215,31 @@ route.post('/hod', upload.single('file'), async (req, res) => {
                 category: row.category,
                 dept_name: row.dept_name,
                 staff_id: row.staff_id,
-                hod_name: row.hod_name,
+                hod_name: row.hod_name
             });
+            uploadProgress.hod.processed += 1;
         }
-
-        res.status(200).send('HOD Data imported successfully');
+        uploadProgress.hod.processed = uploadProgress.hod.total;
+        res.status(200).send('HOD Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.hod;
+        console.error(error);
+        res.status(500).send('Error uploading HOD');
     }
-    catch (error) {
-        console.error('Error Processing HOD Upload :', error);
-        res.status(500).send('An error occurred while processing the HOD file');
-    }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Mentor File Upload
+// MENTOR
 
 route.post('/mentor', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        if (!file) { return res.status(400).send('File Upload Failed') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const activeAcademicSem = await academic.findOne({ where: { active_sem: 1 } });
-
-        if (!activeAcademicSem) { return res.status(400).send('No Active Academic Year Found') }
-
-        const academicSemester = activeAcademicSem.academic_sem;
-        const academicYear = activeAcademicSem.academic_year;
-
+        uploadProgress.mentor = { total: rows.length, processed: 0 };
         for (const row of rows) {
             await mentor.upsert({
                 graduate: row.graduate,
@@ -287,400 +251,220 @@ route.post('/mentor', upload.single('file'), async (req, res) => {
                 batch: row.batch,
                 staff_id: row.staff_id,
                 staff_name: row.staff_name,
-                academic_sem: academicSemester,
-                academic_year: academicYear,
-            })
+                academic_sem: row.academic_sem,
+                academic_year: row.academic_year
+            });
+            uploadProgress.mentor.processed += 1;
         }
-        res.status(200).send('Mentor data inserted successfully');
-    }
-    catch (error) {
-        console.error('Error Processing Mentor Upload : ', error);
-        res.status(500).send('An error occurred while processing the mentor upload');
-    }
-})
-
-// ------------------------------------------------------------------------------------------------------- //
-
-// Scope File Upload
-
-route.post('/scope', upload.single('file'), async (req, res) => {
-
-    try {
-
-        const file = req.file;
-
-        if (!file) { return res.status(400).send('No File Uploaded.') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const scopes = rows.map(row => ({
-            staff_id: row.staff_id,
-            dashboard: row.dashboard,
-            course_list: row.course_list,
-            course_outcome: row.course_outcome,
-            student_outcome: row.student_outcome,
-            program_outcome: row.program_outcome,
-            program_specific_outcome: row.program_specific_outcome,
-            obe_report: row.obe_report,
-            work_progress_report: row.work_progress_report,
-            input_files: row.input_files,
-            manage: row.manage,
-            relationship_matrix: row.relationship_matrix,
-            settings: row.settings
-        }))
-
-        await scope.bulkCreate(scopes, {});
-        res.status(200).send('Scope Table Imported Successfully');
-    }
-    catch (error) {
-        console.error("Error in Scope Upload:", error);
-        res.status(500).send('An error occurred');
+        uploadProgress.mentor.processed = uploadProgress.mentor.total;
+        res.status(200).send('Mentor Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.mentor;
+        console.error(error);
+        res.status(500).send('Error uploading Mentor');
     }
 });
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// ESE Mark Entry File Upload
+// SCOPE
 
-function logIssue(message) {
-
-    const logDir = path.join(__dirname, 'logs');
-    if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir);
-    }
-    const logFile = path.join(logDir, 'ese-upload.log');
-    const logMsg = `[${new Date().toISOString()}] ${message}\n`;
-    fs.appendFileSync(logFile, logMsg);
-    console.error(message);
-}
-
-route.post('/ese', upload.single('file'), async (req, res) => {
+route.post('/scope', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
-        if (!file) {
-            logIssue('❌ No file uploaded.');
-            return res.status(400).send('No file uploaded.');
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
+
+        uploadProgress.scope = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await scope.upsert({
+                staff_id: row.staff_id,
+                dashboard: row.dashboard,
+                course_list: row.course_list,
+                course_outcome: row.course_outcome,
+                student_outcome: row.student_outcome,
+                program_outcome: row.program_outcome,
+                program_specific_outcome: row.program_specific_outcome,
+                obe_report: row.obe_report,
+                work_progress_report: row.work_progress_report,
+                input_files: row.input_files,
+                manage: row.manage,
+                relationship_matrix: row.relationship_matrix,
+                settings: row.settings
+            });
+            uploadProgress.scope.processed += 1;
         }
-
-        const workbook = XLSX.readFile(file.path);
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const BATCH_SIZE = 1000;
-        let processed = 0;
-
-        req.on('aborted', () => { logIssue(`❌ Client aborted request after processing ${processed} rows`) });
-
-        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-            const batch = rows.slice(i, i + BATCH_SIZE);
-            for (const row of batch) {
-                const { reg_no, course_code, ese_lot, ese_mot, ese_hot, ese_total } = row;
-                try {
-                    const updatedData = {
-                        ese_lot: Number(ese_lot) || -1,
-                        ese_mot: Number(ese_mot) || -1,
-                        ese_hot: Number(ese_hot) || -1,
-                        ese_total: Number(ese_total) || -1
-                    };
-
-                    const [affectedRows] = await markentry.update(updatedData, {
-                        where: {
-                            reg_no,
-                            course_code
-                        }
-                    })
-                    if (affectedRows > 0) {
-                        processed += 1;
-                        // logIssue(`✅ Updated reg_no: ${reg_no}, course_code: ${course_code}`);
-                    }
-                    // else { logIssue(`⚠️ Row not found for reg_no: ${reg_no}, course_code: ${course_code}`)}
-                } catch (updateError) { logIssue(`❌ Error updating reg_no: ${reg_no}, course_code: ${course_code}. Error: ${updateError.message}`) }
-            }
-        }
-        fs.unlinkSync(file.path);
-        res.status(200).send(`Ese mark updated successfully`);
-
+        uploadProgress.scope.processed = uploadProgress.scope.total;
+        res.status(200).send('Scope Imported Successfully');
     } catch (error) {
-        logIssue(`❌ Upload Error: ${error.stack || error.message}`);
-        res.status(500).send('An error occurred');
+        delete uploadProgress.scope;
+        console.error(error);
+        res.status(500).send('Error uploading Scope');
     }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Report File Upload
-
-route.post('/report', upload.single('file'), async (req, res) => {
-
-    try {
-
-        const file = req.file;
-
-        if (!file) { return res.status(400).send('File Upload Failed') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } });
-
-        if (!activeAcademic) { return res.status(400).send('No Active Academic Year Found') }
-
-        const activeSemester = activeAcademic.academic_sem;
-
-        await report.destroy({ where: {}, truncate: true });
-
-        const reports = rows.map(row => ({
-            staff_id: row.staff_id,
-            course_code: row.course_code,
-            category: row.category,
-            section: row.section,
-            dept_name: row.dept_name,
-            cia_1: row.cia_1,
-            cia_2: row.cia_2,
-            ass_1: row.ass_1,
-            ass_2: row.ass_2,
-            ese: row.ese,
-            academic_sem: activeSemester
-        }));
-
-        await report.bulkCreate(reports);
-        res.status(200).send('Report Data Imported Successfully');
-    }
-    catch (error) {
-        console.error('Error processing report upload:', error);
-        res.status(500).send('An error occurred while processing the report');
-    }
-})
-
-// ------------------------------------------------------------------------------------------------------- //
-
-// Calculation File Upload
+// CALCULATION
 
 route.post('/calculation', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        if (!file) { return res.status(400).send('No File Uploaded.') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const calculations = rows.map(row => ({
-            academic_sem: row.academic_sem,
-            c1_lot: row.c1_lot,
-            c1_mot: row.c1_mot,
-            c1_hot: row.c1_hot,
-            c2_lot: row.c2_lot,
-            c2_mot: row.c2_mot,
-            c2_hot: row.c2_hot,
-            a1_lot: row.a1_lot,
-            a1_mot: row.a1_mot,
-            a1_hot: row.a1_hot,
-            a2_lot: row.a2_lot,
-            a2_mot: row.a2_mot,
-            a2_hot: row.a2_hot,
-            c_lot: row.c_lot,
-            c_mot: row.c_mot,
-            c_hot: row.c_hot,
-            e_lot: row.e_lot,
-            e_mot: row.e_mot,
-            e_hot: row.e_hot,
-            so_l0_ug: row.so_l0_ug,
-            so_l1_ug: row.so_l1_ug,
-            so_l2_ug: row.so_l2_ug,
-            so_l3_ug: row.so_l3_ug,
-            so_l0_pg: row.so_l0_pg,
-            so_l1_pg: row.so_l1_pg,
-            so_l2_pg: row.so_l2_pg,
-            so_l3_pg: row.so_l3_pg,
-            cia_weightage: row.cia_weightage,
-            ese_weightage: row.ese_weightage,
-            co_thresh_value: row.co_thresh_value
-        }));
-
-        for (const data of calculations) { await calculation.upsert(data) }
-        res.status(200).send('Calculation Table Imported Successfully Updated Successfully');
+        uploadProgress.calculation = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await calculation.upsert(row);
+            uploadProgress.calculation.processed += 1;
+        }
+        uploadProgress.calculation.processed = uploadProgress.calculation.total;
+        res.status(200).send('Calculation Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.calculation;
+        console.error(error);
+        res.status(500).send('Error uploading Calculation');
     }
-    catch (error) {
-        console.error("Error in upload : ", error);
-        res.status(500).send('An error occurred');
-    }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Academic File Upload
+// ACADEMIC
 
 route.post('/academic', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        if (!file) { return res.status(400).send('No File Uploaded.') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const calculations = rows.map(row => ({
-            academic_year: row.academic_year,
-            sem: row.sem,
-            active_sem: row.active_sem,
-        }))
-
-        for (const data of calculations) { await academic.upsert(data) }
-        res.status(200).send('Academic Table Imported Successfully Updated Successfully');
+        uploadProgress.academic = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await academic.upsert({
+                academic_year: row.academic_year,
+                sem: row.sem,
+                active_sem: row.active_sem
+            });
+            uploadProgress.academic.processed += 1;
+        }
+        uploadProgress.academic.processed = uploadProgress.academic.total;
+        res.status(200).send('Academic Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.academic;
+        console.error(error);
+        res.status(500).send('Error uploading Academic');
     }
-    catch (error) {
-        console.error("Error in upload:", error);
-        res.status(500).send('An error occurred');
-    }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// RSmatrix File Upload
+// RSMATRIX
 
 route.post('/rsmatrix', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        if (!file) { return res.status(400).send('No File Uploaded.') }
-
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const rsmatrixs = rows.map(row => ({
-            academic_sem: row.academic_sem,
-            dept_id: row.dept_id,
-            course_code: row.course_code,
-            co1_po1: row.co1_po1,
-            co1_po2: row.co1_po2,
-            co1_po3: row.co1_po3,
-            co1_po4: row.co1_po4,
-            co1_po5: row.co1_po5,
-            co1_pso1: row.co1_pso1,
-            co1_pso2: row.co1_pso2,
-            co1_pso3: row.co1_pso3,
-            co1_pso4: row.co1_pso4,
-            co1_pso5: row.co1_pso5,
-            co1_mean: row.co1_mean,
-            co2_po1: row.co2_po1,
-            co2_po2: row.co2_po2,
-            co2_po3: row.co2_po3,
-            co2_po4: row.co2_po4,
-            co2_po5: row.co2_po5,
-            co2_pso1: row.co2_pso1,
-            co2_pso2: row.co2_pso2,
-            co2_pso3: row.co2_pso3,
-            co2_pso4: row.co2_pso4,
-            co2_pso5: row.co2_pso5,
-            co2_mean: row.co2_mean,
-            co3_po1: row.co3_po1,
-            co3_po2: row.co3_po2,
-            co3_po3: row.co3_po3,
-            co3_po4: row.co3_po4,
-            co3_po5: row.co3_po5,
-            co3_pso1: row.co3_pso1,
-            co3_pso2: row.co3_pso2,
-            co3_pso3: row.co3_pso3,
-            co3_pso4: row.co3_pso4,
-            co3_pso5: row.co3_pso5,
-            co3_mean: row.co3_mean,
-            co4_po1: row.co4_po1,
-            co4_po2: row.co4_po2,
-            co4_po3: row.co4_po3,
-            co4_po4: row.co4_po4,
-            co4_po5: row.co4_po5,
-            co4_pso1: row.co4_pso1,
-            co4_pso2: row.co4_pso2,
-            co4_pso3: row.co4_pso3,
-            co4_pso4: row.co4_pso4,
-            co4_pso5: row.co4_pso5,
-            co4_mean: row.co4_mean,
-            co5_po1: row.co5_po1,
-            co5_po2: row.co5_po2,
-            co5_po3: row.co5_po3,
-            co5_po4: row.co5_po4,
-            co5_po5: row.co5_po5,
-            co5_pso1: row.co5_pso1,
-            co5_pso2: row.co5_pso2,
-            co5_pso3: row.co5_pso3,
-            co5_pso4: row.co5_pso4,
-            co5_pso5: row.co5_pso5,
-            co5_mean: row.co5_mean,
-            mean: row.mean,
-            olrel: row.olrel
-        }))
-
-        for (const data of rsmatrixs) { await rsmatrix.upsert(data) }
-        res.status(200).send('RS Matrix Table Imported Successfully Updated Successfully');
+        uploadProgress.rsmatrix = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await rsmatrix.upsert(row);
+            uploadProgress.rsmatrix.processed += 1;
+        }
+        uploadProgress.rsmatrix.processed = uploadProgress.rsmatrix.total;
+        res.status(200).send('RS Matrix Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.rsmatrix;
+        console.error(error);
+        res.status(500).send('Error uploading RS Matrix');
     }
-    catch (error) {
-        console.error("Error in upload:", error);
-        res.status(500).send('An error occurred');
-    }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
-// Coursemaster File Upload
+// COURSEMASTER
 
 route.post('/coursemaster', upload.single('file'), async (req, res) => {
 
     try {
 
-        const file = req.file;
-        if (!file) { return res.status(400).send('File Upload Failed') }
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
 
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } });
-        if (!activeAcademic) { return res.status(400).send('No Active Academic Year Found') }
-        const academicSemester = activeAcademic.academic_sem;
-        const academicYear = activeAcademic.academic_year;
-
-        const reports = rows.map(row => ({
-            s_no: row.s_no,
-            graduate: row.graduate,
-            course_code: row.course_code,
-            course_title: row.course_title,
-            dept_id: row.dept_id,
-            dept_name: row.dept_name,
-            degree: row.degree,
-            semester: row.semester,
-            academic_sem: academicSemester,
-            academic_year: academicYear
-        }));
-
-        for (const data of reports) { await coursemaster.upsert(data) }
-        res.status(200).send('Coursemaster Data Imported Successfully');
+        uploadProgress.coursemaster = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            await coursemaster.upsert(row);
+            uploadProgress.coursemaster.processed += 1;
+        }
+        uploadProgress.coursemaster.processed = uploadProgress.coursemaster.total;
+        res.status(200).send('Coursemaster Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.coursemaster;
+        console.error(error);
+        res.status(500).send('Error uploading Coursemaster');
     }
-    catch (error) {
-        console.error('Error processing report upload:', error);
-        res.status(500).send('An error occurred while processing the report');
+});
+
+// ------------------------------------------------------------------------------------------------------- //
+
+// ESE
+
+route.post('/ese', upload.single('file'), async (req, res) => {
+
+    try {
+
+        const rows = readExcel(req.file);
+        if (rows.length === 0) return res.status(400).send('No data in file');
+
+        uploadProgress.ese = { total: rows.length, processed: 0 };
+        for (const row of rows) {
+            const updateData = {
+                ese_lot: Number(row.ese_lot) || -1,
+                ese_mot: Number(row.ese_mot) || -1,
+                ese_hot: Number(row.ese_hot) || -1,
+                ese_total: Number(row.ese_total) || -1
+            };
+            await markentry.update(updateData, { where: { reg_no: row.reg_no, course_code: row.course_code } });
+            uploadProgress.ese.processed += 1;
+        }
+        uploadProgress.ese.processed = uploadProgress.ese.total;
+        res.status(200).send('ESE Marks Imported Successfully');
+    } catch (error) {
+        delete uploadProgress.ese;
+        console.error(error);
+        res.status(500).send('Error uploading ESE Marks');
     }
-})
+});
+
+// ------------------------------------------------------------------------------------------------------- //
+
+// PROGRESS ENDPOINT
+
+route.get('/progress/:type', (req, res) => {
+
+    const { type } = req.params;
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const interval = setInterval(() => {
+        const progress = uploadProgress[type];
+        if (progress) {
+            const percent = Math.round((progress.processed / progress.total) * 100);
+            res.write(`data: ${percent}\n\n`);
+            if (percent >= 100) {
+                clearInterval(interval);
+                delete uploadProgress[type];
+                res.end();
+            }
+        }
+    }, 300);
+
+    req.on('close', () => clearInterval(interval));
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
