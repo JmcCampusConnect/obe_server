@@ -39,9 +39,9 @@ const dataDelete = require('./routes/dataDelete')
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({limit: '10mb'}));
 
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.urlencoded({limit: '10mb', extended: true}));
 app.use('/api', dashboard);
 app.use('/api', courselist);
 app.use('/api', scopemanage);
@@ -62,10 +62,11 @@ app.use('/api', tutorreport);
 app.use('/api', prospecificoutcome);
 app.use('/api', prooutcome);
 app.use('/api', showblock);
+app.use('/api', dataDelete);
 
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.json({limit: '10mb'}));
 
-require('dotenv').config({ quiet: true });
+require('dotenv').config({quiet: true});
 
 const port = process.env.PORT || 5001;
 const clientUrl = process.env.CLIENT_URL;
@@ -358,18 +359,18 @@ const secretKey = process.env.SECRET_KEY;
 
 app.post('/login', async (req, res) => {
 
-    const { staff_id, staff_pass } = req.body;
+    const {staff_id, staff_pass} = req.body;
 
     try {
 
-        const user = await staffmaster.findOne({ where: { staff_id } });
+        const user = await staffmaster.findOne({where: {staff_id}});
 
         if (!user) {
-            return res.json({ success: false, message: "User not found" });
+            return res.json({success: false, message: "User not found"});
         }
 
         if (user.staff_pass !== staff_pass) {
-            return res.json({ success: false, message: "Invalid Password" });
+            return res.json({success: false, message: "Invalid Password"});
         }
 
         const isWeakPassword =
@@ -410,18 +411,18 @@ app.post('/login', async (req, res) => {
 
 app.post('/update-password', async (req, res) => {
 
-    const { staff_id, old_password, new_password } = req.body;
+    const {staff_id, old_password, new_password} = req.body;
 
     try {
 
-        const user = await staffmaster.findOne({ where: { staff_id } });
+        const user = await staffmaster.findOne({where: {staff_id}});
 
         if (!user) {
-            return res.json({ success: false, message: "User not found" });
+            return res.json({success: false, message: "User not found"});
         }
 
         if (user.staff_pass !== old_password) {
-            return res.json({ success: false, message: "Old password is incorrect" });
+            return res.json({success: false, message: "Old password is incorrect"});
         }
 
         const isWeakPassword =
@@ -443,7 +444,7 @@ app.post('/update-password', async (req, res) => {
                 staff_pass: new_password,
                 is_default_password: false
             },
-            { where: { staff_id } }
+            {where: {staff_id}}
         );
 
         return res.json({
@@ -466,17 +467,17 @@ app.post('/update-password', async (req, res) => {
 
 app.get('/scope/:staffId', async (req, res) => {
 
-    const { staffId } = req.params;
+    const {staffId} = req.params;
 
     try {
         const scopeDetails = await scope.findOne({
-            where: { staff_id: staffId }
+            where: {staff_id: staffId}
         })
         res.json(scopeDetails);
     }
     catch (err) {
         console.error('Error fetching scope details:', err);
-        res.status(500).json({ error: 'An error occurred while fetching data.' });
+        res.status(500).json({error: 'An error occurred while fetching data.'});
     }
 })
 
@@ -486,10 +487,10 @@ app.get('/scope/:staffId', async (req, res) => {
 
 app.post('/staffName', async (req, res) => {
 
-    const { staffId } = req.body;
+    const {staffId} = req.body;
 
     const user = await staffmaster.findOne({
-        where: { staff_id: staffId },
+        where: {staff_id: staffId},
         attributes: ['staff_name'],
         raw: true
     })
@@ -519,12 +520,12 @@ sequelize_conn.authenticate()
 
 app.put('/academic', async (req, res) => {
 
-    const { academicsem } = req.body;
+    const {academicsem} = req.body;
 
     try {
         await academic.update(
-            { active_sem: 0 },
-            { where: {} }
+            {active_sem: 0},
+            {where: {}}
         )
 
         const academicupdate = await academic.findOne({
@@ -539,12 +540,12 @@ app.put('/academic', async (req, res) => {
             res.json(academicupdate);
         }
         else {
-            res.status(404).json({ error: "Academic Year Not Found" });
+            res.status(404).json({error: "Academic Year Not Found"});
         }
     }
     catch (error) {
         console.error('Error: ', error);
-        res.status(500).json({ error: "Something went wrong with the Server" });
+        res.status(500).json({error: "Something went wrong with the Server"});
     }
 })
 
@@ -554,7 +555,7 @@ app.put('/academic', async (req, res) => {
 
 app.post('/activesem', async (req, res) => {
     const activeAcademic = await academic.findOne({
-        where: { active_sem: 1 }
+        where: {active_sem: 1}
     })
     res.json(activeAcademic);
 })
