@@ -35,6 +35,7 @@ const tutorreport = require('./routes/tutorreport');
 const prospecificoutcome = require('./routes/prospecificoutcome');
 const prooutcome = require('./routes/prooutcome');
 const showblock = require('./routes/showblock');
+const dataDelete = require('./routes/dataDelete')
 
 const app = express();
 app.use(cors());
