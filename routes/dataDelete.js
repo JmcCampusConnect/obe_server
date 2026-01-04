@@ -7,6 +7,7 @@ const markentry = require('../models/markentry');
 const report = require('../models/report');
 const hod = require('../models/hod');
 const staffmaster = require('../models/staffmaster');
+const coursemapping=require('../models/coursemapping');
 const { Op } = require('sequelize');
 
 // ------------------------------------------------------------------------------------------------------- //
@@ -162,7 +163,7 @@ router.post('/data-delete/execute', async (req, res) => {
 
             const deleted = {
                 students: 0, mentors: 0, markEntries: 0,
-                reports: 0, hods: 0, staff: 0
+                coursemapping: 0, hods: 0, staff: 0
             };
 
             if (studentBatches && studentBatches.length) {
@@ -181,8 +182,9 @@ router.post('/data-delete/execute', async (req, res) => {
             }
 
             if (reportSems && reportSems.length) {
-                deleted.reports = await report.count({ where: { academic_sem: { [Op.in]: reportSems } }, transaction: t });
+                deleted.coursemapping = await report.count({ where: { academic_sem: { [Op.in]: reportSems } }, transaction: t });
                 await report.destroy({ where: { academic_sem: { [Op.in]: reportSems } }, transaction: t });
+                await coursemapping.destroy({ where: { academic_sem: { [Op.in]: reportSems } }, transaction: t });
             }
 
             if (hodSems && hodSems.length) {
