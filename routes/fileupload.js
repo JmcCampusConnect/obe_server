@@ -178,18 +178,34 @@ route.post("/markentry", upload.single("file"), (req, res) => {
 // ESE UPDATE
 // ------------------------------------------------------------------------------------------------------- //
 
+function toMark(value) {
+    if (value === null || value === undefined) return -1;
+    if (typeof value === "string" && value.trim() === "") { return -1 }
+    const num = Number(value);
+    if (Number.isNaN(num)) { return -1 }
+    return num;
+}
+
 route.post("/ese", upload.single("file"), (req, res) => {
     const rows = readExcel(req.file);
     processExcel("ese", rows, async (row) => {
-        await markentry.update(
+        const [updatedCount] = await markentry.update(
             {
-                ese_lot: Number(row.ese_lot) || -1,
-                ese_mot: Number(row.ese_mot) || -1,
-                ese_hot: Number(row.ese_hot) || -1,
-                ese_total: Number(row.ese_total) || -1,
+                ese_lot: toMark(row.ese_lot),
+                ese_mot: toMark(row.ese_mot),
+                ese_hot: toMark(row.ese_hot),
+                ese_total: toMark(row.ese_total),
             },
-            { where: { reg_no: row.reg_no, course_code: row.course_code } }
+            {
+                where: {
+                    reg_no: row.reg_no?.trim(),
+                    course_code: row.course_code?.trim(),
+                },
+            }
         );
+        if (updatedCount === 0) {
+            throw new Error("Record not found for given reg_no and course_code");
+        }
     });
     res.send("ESE upload started");
 });
