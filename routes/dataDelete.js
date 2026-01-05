@@ -7,7 +7,7 @@ const markentry = require('../models/markentry');
 const report = require('../models/report');
 const hod = require('../models/hod');
 const staffmaster = require('../models/staffmaster');
-const coursemapping=require('../models/coursemapping');
+const coursemapping = require('../models/coursemapping');
 const { Op } = require('sequelize');
 
 // ------------------------------------------------------------------------------------------------------- //
@@ -210,7 +210,7 @@ router.post('/data-delete/execute', async (req, res) => {
             res.status(500).json({ success: false, message: 'Deletion failed' });
         }
     } catch (err) {
-        console.error('data-delete/execute error: ', err);
+        console.error('Data deletion error (execute) : ', err);
         res.status(500).json({ success: false, message: 'Server error during deletion' });
     }
 });

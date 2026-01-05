@@ -30,27 +30,63 @@ const upload = multer({ dest: "uploads/" });
 
 const uploadProgress = {};
 
+async function processExcel(type, rows, handler) {
+
+    uploadProgress[type] = {
+        total: Array.isArray(rows) ? rows.length : 0,
+        processed: 0,
+        failed: 0,
+        errors: []
+    };
+
+    if (!Array.isArray(rows)) {
+        uploadProgress[type].failed++;
+        uploadProgress[type].errors.push({
+            row: "-",
+            identifier: "-",
+            message: "Invalid or empty Excel file"
+        });
+        return;
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+        try {
+            await handler(rows[i]);
+            uploadProgress[type].processed++;
+        } catch (err) {
+            uploadProgress[type].failed++;
+            uploadProgress[type].errors.push({
+                row: i + 2,
+                identifier:
+                    rows[i]?.reg_no ||
+                    rows[i]?.staff_id ||
+                    rows[i]?.course_code ||
+                    "Unknown",
+                message:
+                    err?.errors?.[0]?.message ||
+                    err?.original?.sqlMessage ||
+                    err.message
+            });
+        }
+    }
+}
+
 // ------------------------------------------------------------------------------------------------------- //
 // READ EXCEL
 // ------------------------------------------------------------------------------------------------------- //
 
 function readExcel(file) {
-    const workbook = XLSX.readFile(file.path);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
-    fs.unlinkSync(file.path);
-    return rows;
-}
-
-// ------------------------------------------------------------------------------------------------------- //
-// BACKGROUND PROCESSOR
-// ------------------------------------------------------------------------------------------------------- //
-
-async function processExcel(type, rows, handler) {
-    uploadProgress[type] = { total: rows.length, processed: 0 };
-    for (const row of rows) {
-        await handler(row);
-        uploadProgress[type].processed++;
+    try {
+        const workbook = XLSX.readFile(file.path);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        return rows;
+    } catch (err) {
+        return null;
+    } finally {
+        if (file?.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
     }
 }
 
@@ -255,18 +291,29 @@ route.get("/progress/:type", (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     const timer = setInterval(() => {
+
         const progress = uploadProgress[type];
-        if (!progress) return;
 
-        const percent = Math.round(
-            (progress.processed / progress.total) * 100
-        );
+        if (!progress) {
+            res.write(`data: ${JSON.stringify({
+                total: 0,
+                processed: 0,
+                failed: 1,
+                errors: [{
+                    row: "-",
+                    identifier: "-",
+                    message: "No upload in progress"
+                }]
+            })}\n\n`);
+            res.end();
+            return;
+        }
 
-        res.write(`data: ${percent}\n\n`);
+        res.write(`data: ${JSON.stringify(progress)}\n\n`);
 
-        if (percent >= 100) {
+        if ((progress.processed + progress.failed) >= progress.total) {
             clearInterval(timer);
-            delete uploadProgress[type];
+            setTimeout(() => delete uploadProgress[type], 5000);
             res.end();
         }
     }, 500);
