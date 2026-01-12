@@ -178,52 +178,66 @@ route.get('/esereport', async (req, res) => {
     try {
 
         const academicData = await academic.findOne({ where: { active_sem: 1 } });
+
         if (!academicData) {
             return res.status(404).json({ message: 'Active semester not found' });
         }
 
         const markEntries = await markentry.findAll({
             where: { academic_sem: String(academicData.academic_sem) },
-            attributes: ['course_code', 'ese_lot', 'ese_mot', 'ese_hot', 'ese_total'],
+            attributes: [
+                'course_code', 'ese_lot', 'ese_mot',
+                'ese_hot', 'ese_total'
+            ],
         });
 
         const courseStatusMap = {};
-        markEntries.forEach(entry => {
-            if (!courseStatusMap[entry.course_code]) {
-                courseStatusMap[entry.course_code] = 'Complete';
-            }
-            if (
+
+        for (const entry of markEntries) {
+
+            // If already incomplete, skip further checking
+            if (courseStatusMap[entry.course_code] === 'Incomplete') continue;
+
+            const hasNull =
                 entry.ese_lot === null ||
                 entry.ese_mot === null ||
                 entry.ese_hot === null ||
-                entry.ese_total === null
-            ) {
-                courseStatusMap[entry.course_code] = 'Incomplete';
-            }
-        });
+                entry.ese_total === null;
+
+            courseStatusMap[entry.course_code] = hasNull
+                ? 'Incomplete'
+                : 'Complete';
+        }
+
+        const uniqueCourseCodes = [...new Set(markEntries.map(e => e.course_code))];
 
         const coursesWithTitles = await coursemapping.findAll({
-            where: { course_code: Object.keys(courseStatusMap) },
+            where: { course_code: uniqueCourseCodes },
             attributes: ['course_code', 'course_title'],
+            group: ['course_code', 'course_title']
         });
 
-        const resultMap = new Map();
+        const courseTitleMap = {};
         coursesWithTitles.forEach(course => {
-            resultMap.set(course.course_code, {
-                course_code: course.course_code,
-                course_title: course.course_title,
-                status: courseStatusMap[course.course_code] || 'Incomplete',
-            });
+            courseTitleMap[course.course_code] = course.course_title;
         });
 
-        const result = Array.from(resultMap.values());
-        res.status(200).json({ courses: result });
+        const result = uniqueCourseCodes.map(code => ({
+            course_code: code,
+            course_title: courseTitleMap[code] || '',
+            status: courseStatusMap[code] || 'Incomplete'
+        }));
+
+        res.status(200).json({
+            total_courses: result.length,
+            courses: result
+        });
 
     } catch (error) {
-        console.error('Error processing Ese report : ', error);
+        console.error('Error processing ESE report : ', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
