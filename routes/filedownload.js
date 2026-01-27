@@ -1,7 +1,7 @@
 const express = require('express');
 const route = express.Router();
 const XLSX = require('xlsx');
-
+const { Op } = require('sequelize');
 const coursemapping = require('../models/coursemapping');
 const report = require('../models/report');
 const studentmaster = require('../models/studentmaster');
@@ -21,8 +21,8 @@ const coursemaster = require('../models/coursemaster');
 
 route.get('/download/coursemap', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const courseData = await coursemapping.findAll();
 
         const formattedData = [
@@ -54,7 +54,7 @@ route.get('/download/coursemap', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -65,8 +65,8 @@ route.get('/download/coursemap', async (req, res) => {
 
 route.get('/download/coursemapmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const courseData = await coursemapping.findAll();
 
         const formattedData = [
@@ -83,19 +83,21 @@ route.get('/download/coursemapmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
+
 // ------------------------------------------------------------------------------------------------------- //
 
 // Staff Master Download Excel
 
 route.get('/download/staff', async (req, res) => {
 
-    try 
-    {
-        const staffData = await staffmaster.findAll();
+    try {
+
+        const staffData = await staffmaster.findAll({ where: { staff_id: { [Op.ne]: 'ADMIN' } } });
+
         const formattedData = [
             ['staff_id', 'staff_category', 'staff_name', 'staff_pass', 'staff_dept', 'dept_category'],
             ...staffData.map(staff =>
@@ -118,7 +120,7 @@ route.get('/download/staff', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -129,12 +131,11 @@ route.get('/download/staff', async (req, res) => {
 
 route.get('/download/staffmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const staffData = await staffmaster.findAll();
         const formattedData = [
             ['staff_id', 'staff_category', 'staff_name', 'staff_pass', 'staff_dept', 'dept_category'],
-
         ]
 
         const ws = XLSX.utils.aoa_to_sheet(formattedData);
@@ -146,7 +147,7 @@ route.get('/download/staffmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -157,13 +158,13 @@ route.get('/download/staffmodel', async (req, res) => {
 
 route.get('/download/studentmaster', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const studentData = await studentmaster.findAll();
 
         const formattedData = [
             ['s_no', 'reg_no', 'stu_name', 'dept_id', 'category', 'semester',
-                'section', 'batch', 'academic_sem'],
+                'section', 'batch'],
             ...studentData.map(student => [
                 student.s_no,
                 student.reg_no,
@@ -173,7 +174,6 @@ route.get('/download/studentmaster', async (req, res) => {
                 student.semester,
                 student.section,
                 student.batch,
-                student.academic_sem
             ])
         ];
 
@@ -186,7 +186,7 @@ route.get('/download/studentmaster', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -197,10 +197,9 @@ route.get('/download/studentmaster', async (req, res) => {
 
 route.get('/download/studentmastermodel', async (req, res) => {
 
-    try 
-    {
-        const studentData = await studentmaster.findAll();
+    try {
 
+        const studentData = await studentmaster.findAll();
         const formattedData = [
             ['reg_no', 'stu_name', 'dept_id', 'category', 'semester',
                 'section', 'batch',],
@@ -215,7 +214,7 @@ route.get('/download/studentmastermodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -226,34 +225,34 @@ route.get('/download/studentmastermodel', async (req, res) => {
 
 route.get('/download/scope', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const scopeData = await scope.findAll();
 
         const formattedData =
-        [
-            ['staff_id', 'dashboard', 'course_list', 'course_outcome',
-                'student_outcome', 'program_outcome', 'program_specific_outcome',
-                'mentor_report', 'hod_report', 'report', 'input_files',
-                'manage', 'relationship_matrix', 'settings',],
+            [
+                ['staff_id', 'dashboard', 'course_list', 'course_outcome',
+                    'student_outcome', 'program_outcome', 'program_specific_outcome',
+                    'mentor_report', 'hod_report', 'report', 'input_files',
+                    'manage', 'relationship_matrix', 'settings',],
 
-            ...scopeData.map(scope => [
-                scope.staff_id,
-                scope.dashboard,
-                scope.course_list,
-                scope.course_outcome,
-                scope.student_outcome,
-                scope.program_outcome,
-                scope.program_specific_outcome,
-                scope.mentor_report,
-                scope.hod_report,
-                scope.report,
-                scope.input_files,
-                scope.manage,
-                scope.relationship_matrix,
-                scope.settings,
-            ])
-        ];
+                ...scopeData.map(scope => [
+                    scope.staff_id,
+                    scope.dashboard,
+                    scope.course_list,
+                    scope.course_outcome,
+                    scope.student_outcome,
+                    scope.program_outcome,
+                    scope.program_specific_outcome,
+                    scope.mentor_report,
+                    scope.hod_report,
+                    scope.report,
+                    scope.input_files,
+                    scope.manage,
+                    scope.relationship_matrix,
+                    scope.settings,
+                ])
+            ];
 
         const ws = XLSX.utils.aoa_to_sheet(formattedData);
         const wb = XLSX.utils.book_new();
@@ -264,7 +263,7 @@ route.get('/download/scope', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -275,10 +274,9 @@ route.get('/download/scope', async (req, res) => {
 
 route.get('/download/scopemodel', async (req, res) => {
 
-    try 
-    {
-        const scopeData = await scope.findAll();
+    try {
 
+        const scopeData = await scope.findAll();
         const formattedData = [
             ['staff_id', 'dashboard', 'course_list', 'course_outcome',
                 'student_outcome', 'program_outcome', 'program_specific_outcome',
@@ -295,7 +293,7 @@ route.get('/download/scopemodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -306,55 +304,37 @@ route.get('/download/scopemodel', async (req, res) => {
 
 route.get('/download/mark', async (req, res) => {
 
-    try 
-    {
-        const markData = await markentry.findAll();
-        const formattedData = [
-            ['s_no', 'batch', 'graduate', 'category', 'dept_id', 'reg_no', 'course_code', 'semester', 'c1_lot', 'c1_mot', 'c1_hot', 'c1_total',
-                'c2_lot', 'c2_mot', 'c2_hot', 'c2_total', 'a1_lot', 'a2_lot', 'ese_lot', 'ese_mot', 'ese_hot', 'ese_total', 'academic_sem', 'academic_year',],
+    try {
 
-            ...markData.map(student =>
-            [
-                student.s_no,
-                student.batch,
-                student.graduate,
-                student.category,
-                student.dept_id,
-                student.reg_no,
-                student.course_code,
-                student.semester,
-                student.c1_lot,
-                student.c1_mot,
-                student.c1_hot,
-                student.c1_total,
-                student.c2_lot,
-                student.c2_mot,
-                student.c2_hot,
-                student.c2_total,
-                student.a1_lot,
-                student.a2_lot,
-                student.ese_lot,
-                student.ese_mot,
-                student.ese_hot,
-                student.ese_total,
-                student.academic_sem,
-                student.academic_year
-            ])
-        ]
+        const markData = await markentry.findAll({ raw: true });
+
+        const formattedData = [
+            Object.keys(markData[0] || {}),
+            ...markData.map(Object.values)
+        ];
 
         const ws = XLSX.utils.aoa_to_sheet(formattedData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Student Course Mapping');
-        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-        res.setHeader('Content-Disposition', 'attachment; filename = Student Course Mapping Data.xlsx');
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(excelBuffer);
+
+        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+
+        res.setHeader(
+            'Content-Disposition',
+            'attachment; filename="Student Course Mapping.xlsx"'
+        );
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+
+        res.send(buffer);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error");
     }
-    catch (error) {
-        console.error('Error generating Excel file:', error);
-        res.status(500).send('Server error');
-    }
-})
+});
 
 // ------------------------------------------------------------------------------------------------------- //
 
@@ -362,8 +342,8 @@ route.get('/download/mark', async (req, res) => {
 
 route.get('/download/markmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const markData = await markentry.findAll();
         const formattedData = [
             ['batch', 'graduate', 'category', 'dept_id', 'reg_no', 'course_code', 'semester', 'c1_lot', 'c1_mot', 'c1_hot', 'c1_total',
@@ -379,7 +359,7 @@ route.get('/download/markmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -390,8 +370,8 @@ route.get('/download/markmodel', async (req, res) => {
 
 route.get('/download/ese', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const markData = await markentry.findAll();
 
         const formattedData = [
@@ -416,7 +396,7 @@ route.get('/download/ese', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 });
@@ -427,13 +407,12 @@ route.get('/download/ese', async (req, res) => {
 
 route.get('/download/esemodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const markData = await markentry.findAll();
 
         const formattedData = [
-            ['reg_no', 'course_code', 'ese_lot', 'ese_mot', 'ese_hot',
-                'ese_total'],
+            ['reg_no', 'course_code', 'ese_lot', 'ese_mot', 'ese_hot', 'ese_total'],
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(formattedData);
@@ -445,7 +424,7 @@ route.get('/download/esemodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 });
@@ -456,8 +435,8 @@ route.get('/download/esemodel', async (req, res) => {
 
 route.get('/download/report', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const reportData = await report.findAll();
 
         const formattedData = [
@@ -491,7 +470,7 @@ route.get('/download/report', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -502,8 +481,8 @@ route.get('/download/report', async (req, res) => {
 
 route.get('/download/reportmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const reportData = await report.findAll();
 
         const formattedData = [
@@ -522,7 +501,7 @@ route.get('/download/reportmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -533,8 +512,8 @@ route.get('/download/reportmodel', async (req, res) => {
 
 route.get('/download/mentor', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const mentorData = await mentor.findAll();
 
         const formattedData = [
@@ -567,7 +546,7 @@ route.get('/download/mentor', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -578,8 +557,8 @@ route.get('/download/mentor', async (req, res) => {
 
 route.get('/download/mentormodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const mentorData = await mentor.findAll();
 
         const formattedData = [
@@ -597,7 +576,7 @@ route.get('/download/mentormodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -608,8 +587,8 @@ route.get('/download/mentormodel', async (req, res) => {
 
 route.get('/download/hod', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const hodData = await hod.findAll();
 
         const formattedData = [
@@ -629,7 +608,6 @@ route.get('/download/hod', async (req, res) => {
         const ws = XLSX.utils.aoa_to_sheet(formattedData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Hod');
-
         const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
 
         res.setHeader('Content-Disposition', 'attachment; filename = Hod Data.xlsx');
@@ -637,7 +615,7 @@ route.get('/download/hod', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -648,8 +626,8 @@ route.get('/download/hod', async (req, res) => {
 
 route.get('/download/hodmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const mentorData = await hod.findAll();
 
         const formattedData = [
@@ -667,7 +645,7 @@ route.get('/download/hodmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -679,8 +657,8 @@ route.get('/download/hodmodel', async (req, res) => {
 
 route.get('/download/calculation', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const calculationData = await calculation.findAll();
 
         const formattedData = [
@@ -735,7 +713,7 @@ route.get('/download/calculation', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -746,8 +724,8 @@ route.get('/download/calculation', async (req, res) => {
 
 route.get('/download/calculationmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const calculationData = await calculation.findAll();
 
         const formattedData = [
@@ -766,7 +744,7 @@ route.get('/download/calculationmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -777,8 +755,8 @@ route.get('/download/calculationmodel', async (req, res) => {
 
 route.get('/download/academic', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const academicData = await academic.findAll();
 
         const formattedData = [
@@ -804,7 +782,7 @@ route.get('/download/academic', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -815,8 +793,8 @@ route.get('/download/academic', async (req, res) => {
 
 route.get('/download/academicmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const academicData = await academic.findAll();
 
         const formattedData = [
@@ -833,7 +811,7 @@ route.get('/download/academicmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -844,8 +822,8 @@ route.get('/download/academicmodel', async (req, res) => {
 
 route.get('/download/rsmatrix', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const rsmatrixData = await rsmatrix.findAll();
 
         const formattedData = [
@@ -858,69 +836,69 @@ route.get('/download/rsmatrix', async (req, res) => {
                 'co5_pso2', 'co5_pso3', 'co5_pso4', 'co5_pso5', 'co5_mean', 'mean', 'olrel'],
 
             ...rsmatrixData.map((rsmatrix) =>
-            [
-                rsmatrix.s_no,
-                rsmatrix.academic_year,
-                rsmatrix.course_id,
-                rsmatrix.course_code,
-                rsmatrix.co1_po1,
-                rsmatrix.co1_po2,
-                rsmatrix.co1_po3,
-                rsmatrix.co1_po4,
-                rsmatrix.co1_po5,
-                rsmatrix.co1_pso1,
-                rsmatrix.co1_pso2,
-                rsmatrix.co1_pso3,
-                rsmatrix.co1_pso4,
-                rsmatrix.co1_pso5,
-                rsmatrix.co1_mean,
-                rsmatrix.co2_po1,
-                rsmatrix.co2_po2,
-                rsmatrix.co2_po3,
-                rsmatrix.co2_po4,
-                rsmatrix.co2_po5,
-                rsmatrix.co2_pso1,
-                rsmatrix.co2_pso2,
-                rsmatrix.co2_pso3,
-                rsmatrix.co2_pso4,
-                rsmatrix.co2_pso5,
-                rsmatrix.co2_mean,
-                rsmatrix.co3_po1,
-                rsmatrix.co3_po2,
-                rsmatrix.co3_po3,
-                rsmatrix.co3_po4,
-                rsmatrix.co3_po5,
-                rsmatrix.co3_pso1,
-                rsmatrix.co3_pso2,
-                rsmatrix.co3_pso3,
-                rsmatrix.co3_pso4,
-                rsmatrix.co3_pso5,
-                rsmatrix.co3_mean,
-                rsmatrix.co4_po1,
-                rsmatrix.co4_po2,
-                rsmatrix.co4_po3,
-                rsmatrix.co4_po4,
-                rsmatrix.co4_po5,
-                rsmatrix.co4_pso1,
-                rsmatrix.co4_pso2,
-                rsmatrix.co4_pso3,
-                rsmatrix.co4_pso4,
-                rsmatrix.co4_pso5,
-                rsmatrix.co4_mean,
-                rsmatrix.co5_po1,
-                rsmatrix.co5_po2,
-                rsmatrix.co5_po3,
-                rsmatrix.co5_po4,
-                rsmatrix.co5_po5,
-                rsmatrix.co5_pso1,
-                rsmatrix.co5_pso2,
-                rsmatrix.co5_pso3,
-                rsmatrix.co5_pso4,
-                rsmatrix.co5_pso5,
-                rsmatrix.co5_mean,
-                rsmatrix.mean,
-                rsmatrix.olrel
-            ])
+                [
+                    rsmatrix.s_no,
+                    rsmatrix.academic_year,
+                    rsmatrix.course_id,
+                    rsmatrix.course_code,
+                    rsmatrix.co1_po1,
+                    rsmatrix.co1_po2,
+                    rsmatrix.co1_po3,
+                    rsmatrix.co1_po4,
+                    rsmatrix.co1_po5,
+                    rsmatrix.co1_pso1,
+                    rsmatrix.co1_pso2,
+                    rsmatrix.co1_pso3,
+                    rsmatrix.co1_pso4,
+                    rsmatrix.co1_pso5,
+                    rsmatrix.co1_mean,
+                    rsmatrix.co2_po1,
+                    rsmatrix.co2_po2,
+                    rsmatrix.co2_po3,
+                    rsmatrix.co2_po4,
+                    rsmatrix.co2_po5,
+                    rsmatrix.co2_pso1,
+                    rsmatrix.co2_pso2,
+                    rsmatrix.co2_pso3,
+                    rsmatrix.co2_pso4,
+                    rsmatrix.co2_pso5,
+                    rsmatrix.co2_mean,
+                    rsmatrix.co3_po1,
+                    rsmatrix.co3_po2,
+                    rsmatrix.co3_po3,
+                    rsmatrix.co3_po4,
+                    rsmatrix.co3_po5,
+                    rsmatrix.co3_pso1,
+                    rsmatrix.co3_pso2,
+                    rsmatrix.co3_pso3,
+                    rsmatrix.co3_pso4,
+                    rsmatrix.co3_pso5,
+                    rsmatrix.co3_mean,
+                    rsmatrix.co4_po1,
+                    rsmatrix.co4_po2,
+                    rsmatrix.co4_po3,
+                    rsmatrix.co4_po4,
+                    rsmatrix.co4_po5,
+                    rsmatrix.co4_pso1,
+                    rsmatrix.co4_pso2,
+                    rsmatrix.co4_pso3,
+                    rsmatrix.co4_pso4,
+                    rsmatrix.co4_pso5,
+                    rsmatrix.co4_mean,
+                    rsmatrix.co5_po1,
+                    rsmatrix.co5_po2,
+                    rsmatrix.co5_po3,
+                    rsmatrix.co5_po4,
+                    rsmatrix.co5_po5,
+                    rsmatrix.co5_pso1,
+                    rsmatrix.co5_pso2,
+                    rsmatrix.co5_pso3,
+                    rsmatrix.co5_pso4,
+                    rsmatrix.co5_pso5,
+                    rsmatrix.co5_mean,
+                    rsmatrix.mean,
+                    rsmatrix.olrel
+                ])
         ]
 
         const ws = XLSX.utils.aoa_to_sheet(formattedData);
@@ -934,7 +912,7 @@ route.get('/download/rsmatrix', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -945,8 +923,8 @@ route.get('/download/rsmatrix', async (req, res) => {
 
 route.get('/download/rsmatrixmodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const rsmatrixData = await rsmatrix.findAll();
 
         const formattedData = [
@@ -969,7 +947,7 @@ route.get('/download/rsmatrixmodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -980,8 +958,8 @@ route.get('/download/rsmatrixmodel', async (req, res) => {
 
 route.get('/download/coursemaster', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const coursemasterData = await coursemaster.findAll();
 
         const formattedData =
@@ -1012,7 +990,7 @@ route.get('/download/coursemaster', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })
@@ -1023,8 +1001,8 @@ route.get('/download/coursemaster', async (req, res) => {
 
 route.get('/download/coursemastermodel', async (req, res) => {
 
-    try 
-    {
+    try {
+
         const coursemasterData = await coursemaster.findAll();
 
         const formattedData = [
@@ -1041,7 +1019,7 @@ route.get('/download/coursemastermodel', async (req, res) => {
         res.send(excelBuffer);
     }
     catch (error) {
-        console.error('Error generating Excel file:', error);
+        console.error('Error generating Excel file : ', error);
         res.status(500).send('Server error');
     }
 })

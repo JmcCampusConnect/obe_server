@@ -191,12 +191,14 @@ router.post('/data-delete/execute', async (req, res) => {
                 deleted.hods = await report.count({ where: { academic_sem: { [Op.in]: hodSems } }, transaction: t });
                 await report.destroy({});
             }
+
             if (hodAll) {
                 deleted.hods = await hod.count({ transaction: t });
                 await hod.destroy({ where: {}, transaction: t });
             }
+
             if (staffAll) {
-                const condition = { staff_category: { [Op.ne]: 'ADMIN' } };
+                const condition = { staff_id: { [Op.ne]: 'ADMIN' } };
                 deleted.staff = await staffmaster.count({ where: condition, transaction: t });
                 await staffmaster.destroy({ where: condition, transaction: t });
             }
@@ -206,7 +208,7 @@ router.post('/data-delete/execute', async (req, res) => {
 
         } catch (err) {
             await t.rollback();
-            console.error('data-delete/execute transaction error: ', err);
+            console.error('Error in deleting data transaction : ', err);
             res.status(500).json({ success: false, message: 'Deletion failed' });
         }
     } catch (err) {

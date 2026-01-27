@@ -143,7 +143,14 @@ route.post("/coursemapping", upload.single("file"), async (req, res) => {
         where: { active_sem: 1 },
     });
 
+    if (!activeAcademic) {
+        return res.status(400).send("No active academic semester found");
+    }
+
+    res.send("Upload started");
+
     processExcel("coursemapping", rows, async (row) => {
+
         await coursemapping.upsert({
             ...row,
             academic_sem: activeAcademic.academic_sem,
@@ -158,18 +165,23 @@ route.post("/coursemapping", upload.single("file"), async (req, res) => {
             academic_sem: activeAcademic.academic_sem,
         });
     });
-
-    res.send("Course Mapping upload started");
-});
+})
 
 // ------------------------------------------------------------------------------------------------------- //
 // MARK ENTRY
 // ------------------------------------------------------------------------------------------------------- //
 
-route.post("/markentry", upload.single("file"), (req, res) => {
+route.post("/markentry", upload.single("file"), async (req, res) => {
     const rows = readExcel(req.file);
+    const activeAcademic = await academic.findOne({
+        where: { active_sem: 1 },
+    });
     processExcel("markentry", rows, async (row) => {
-        await markentry.upsert(row);
+        await markentry.upsert({
+            ...row,
+            academic_sem: activeAcademic.academic_sem,
+            academic_year: activeAcademic.academic_year,
+        });
     });
     res.send("Mark Entry upload started");
 });
