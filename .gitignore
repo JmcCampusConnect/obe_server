@@ -1,9 +1,4 @@
-# Ignored Files
-
 models/dbconnection.js
-
 .env
-
 node_modules/
-
 uploads/

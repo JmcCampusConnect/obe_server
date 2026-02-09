@@ -298,10 +298,17 @@ route.post("/rsmatrix", upload.single("file"), (req, res) => {
 // COURSE MASTER
 // ------------------------------------------------------------------------------------------------------- //
 
-route.post("/coursemaster", upload.single("file"), (req, res) => {
+route.post("/coursemaster", upload.single("file"), async (req, res) => {
     const rows = readExcel(req.file);
+    const activeAcademic = await academic.findOne({
+        where: { active_sem: 1 },
+    });
     processExcel("coursemaster", rows, async (row) => {
-        await coursemaster.upsert(row);
+        await coursemaster.upsert({
+            ...row,
+            academic_sem: activeAcademic.academic_sem,
+            academic_year: activeAcademic.academic_year,
+        });
     });
     res.send("Course Master upload started");
 });
