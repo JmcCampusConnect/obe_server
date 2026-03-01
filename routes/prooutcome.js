@@ -133,7 +133,7 @@ function buildHeaderTable(logoData) {
                 alignment: AlignmentType.CENTER,
                 spacing: { before: 0, after: 0 },
                 children: logoData
-                    ? [new ImageRun({ data: logoData, transformation: { width: 63, height: 88 }, type: "jpeg" })]
+                    ? [new ImageRun({ data: logoData, transformation: { width: 63, height: 80 }, type: "png" })]
                     : [new TextRun({ text: "" })],
             }),
         ],
@@ -192,11 +192,9 @@ function buildHeaderTable(logoData) {
 
 // Word builder
 
-// Word builder
-
 async function buildWordDoc(resultByDept, selectedAcademicYear) {
 
-    const logoPath = path.join(__dirname, '../assets/jmclogo.jpeg');
+    const logoPath = path.join(__dirname, 'jmclogo.png');
     let logoData = null;
     if (fs.existsSync(logoPath)) {
         logoData = fs.readFileSync(logoPath);
@@ -204,6 +202,12 @@ async function buildWordDoc(resultByDept, selectedAcademicYear) {
 
     const sections = [];
     const deptEntries = Object.entries(resultByDept);
+    const nilBorders = {
+        top: nilBorder,
+        bottom: nilBorder,
+        left: nilBorder,
+        right: nilBorder
+    };
 
     for (let dIdx = 0; dIdx < deptEntries.length; dIdx++) {
 
@@ -221,7 +225,7 @@ async function buildWordDoc(resultByDept, selectedAcademicYear) {
         page1.push(
             new Paragraph({
                 spacing: { before: 0, after: 0 },
-                children: [new TextRun({ text: "Steps to Calculate the Attainment of Programme Specific Outcome", bold: true })],
+                children: [new TextRun({ text: "Steps to Calculate the Attainment of Programme Specific Outcome", bold: true, size: 26 })],
             })
         );
 
@@ -410,15 +414,18 @@ async function buildWordDoc(resultByDept, selectedAcademicYear) {
         );
 
         // Create a table with two columns for the header information
+        page2.push(new Paragraph({ spacing: { before: 240, after: 0 }, children: [] })); // top margin
+
         page2.push(
             new Table({
-                width: { size: 9000, type: WidthType.DXA }, 
+                width: { size: 9000, type: WidthType.DXA },
                 alignment: AlignmentType.CENTER,
+                borders: nilBorders,
                 rows: [
                     new TableRow({
                         children: [
                             new TableCell({
-                                borders: nilBorder, 
+                                borders: nilBorders,
                                 verticalAlign: VerticalAlign.CENTER,
                                 children: [
                                     new Paragraph({
@@ -430,15 +437,14 @@ async function buildWordDoc(resultByDept, selectedAcademicYear) {
                                     }),
                                 ],
                             }),
-                            // Right cell - Academic Year
                             new TableCell({
-                                borders: nilBorder, 
+                                borders: nilBorders,
                                 verticalAlign: VerticalAlign.CENTER,
                                 children: [
                                     new Paragraph({
                                         alignment: AlignmentType.RIGHT,
                                         children: [
-                                            new TextRun({ text: "Academic Year: ", bold: true }),
+                                            new TextRun({ text: "Academic Year : ", bold: true }),
                                             new TextRun({ text: `${selectedAcademicYear}`, bold: false }),
                                         ],
                                     }),
@@ -569,14 +575,13 @@ async function buildWordDoc(resultByDept, selectedAcademicYear) {
             })
         );
 
-        // Add flexible spacing to push signature to bottom of page
-        // MODIFIED: increased spacing.before to 6000 (was 400) to push signature to bottom
+        // ← SPACER ADDED HERE – pushes the signature toward the bottom
         page2.push(new Paragraph({
-            spacing: { before: 6000, after: 0, line: 360, lineRule: "auto" },
+            spacing: { before: 500, after: 0, line: 360, lineRule: "auto" },
             children: []
         }));
 
-        // "Controller of Examinations" — right-aligned, Bookman Old Style bold sz 26
+        // "Controller of Examinations" — right‑aligned, Bookman Old Style bold sz 26
         page2.push(
             new Paragraph({
                 alignment: AlignmentType.RIGHT,
