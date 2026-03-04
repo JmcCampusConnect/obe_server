@@ -115,14 +115,12 @@ route.post('/staffdelete', async (req, res) => {
     const { deletestaffid } = req.body;
 
     try {
-        await staffmaster.destroy({ 
-            where: { staff_id: deletestaffid } 
-        })
-        // await coursemapping.destroy({ where: { staff_id: deletestaffid } })
-        // await mentor.destroy({ where: { staff_id: deletestaffid } })
-        // await hod.destroy({ where: { staff_id: deletestaffid } })
-        // await scope.destroy({ where: { staff_id: deletestaffid } })
-        // await report.destroy({ where: { staff_id: deletestaffid } })
+        await staffmaster.destroy({ where: { staff_id: deletestaffid } })
+        await coursemapping.destroy({ where: { staff_id: deletestaffid } })
+        await mentor.destroy({ where: { staff_id: deletestaffid } })
+        await hod.destroy({ where: { staff_id: deletestaffid } })
+        await scope.destroy({ where: { staff_id: deletestaffid } })
+        await report.destroy({ where: { staff_id: deletestaffid } })
         res.json({ message: "Staff Successfully Deleted" })
     }
     catch (err) { console.log("Error in Deleting Staff : ", err) }
