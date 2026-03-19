@@ -3,6 +3,7 @@ const router = express.Router();
 const coursemapping = require('../models/coursemapping');
 const report = require('../models/report');
 const academic = require('../models/academic');
+const staffmaster = require('../models/staffmaster');
 
 // ------------------------------------------------------------------------------------------------------- //
 
@@ -32,18 +33,11 @@ router.get('/staffcoursemanage', async (req, res) => {
 router.get('/staffId', async (req, res) => {
 
     try {
+        const staffData = await staffmaster.findAll({
+            attributes: ['staff_id', 'staff_name'],
+        });
 
-        const activeAcademic = await academic.findOne({ where: { active_sem: 1 } })
-
-        const staffData = await coursemapping.findAll({
-            where: {
-                academic_sem: activeAcademic.academic_sem
-            },
-            attributes: ['staff_id'],
-        })
-
-        const uniqueStaffIds = [...new Set(staffData.map(entry => entry.staff_id))];
-        res.json(uniqueStaffIds)
+        res.json(staffData);
     }
     catch (error) {
         console.error('Error fetching Staff Id :', error);
@@ -56,16 +50,14 @@ router.get('/staffId', async (req, res) => {
 router.post('/staffname', async (req, res) => {
 
     try {
-
         const { staff_id } = req.body;
 
-        const staffData = await coursemapping.findAll({
-            where: { staff_id: staff_id },
+        const staff = await staffmaster.findOne({
+            where: { staff_id },
             attributes: ['staff_name'],
-        })
+        });
 
-        const uniqueStaffNames = [...new Set(staffData.map(entry => entry.staff_name))];
-        res.json(uniqueStaffNames)
+        res.json(staff ? staff.staff_name : "");
     }
     catch (error) {
         console.error('Error fetching Staff Name :', error);
