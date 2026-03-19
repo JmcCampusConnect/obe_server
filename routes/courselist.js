@@ -6,7 +6,6 @@ const markentry = require('../models/markentry');
 const report = require('../models/report');
 const academic = require('../models/academic');
 const calculation = require('../models/calculation');
-const { Op, Sequelize } = require("sequelize");
 
 // ------------------------------------------------------------------------------------------------------- //
 
