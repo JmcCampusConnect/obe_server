@@ -35,7 +35,8 @@ const tutorreport = require('./routes/tutorreport');
 const prospecificoutcome = require('./routes/prospecificoutcome');
 const prooutcome = require('./routes/prooutcome');
 const showblock = require('./routes/showblock');
-const dataDelete = require('./routes/dataDelete')
+const dataDelete = require('./routes/dataDelete');
+const obereport = require('./routes/obereport');
 
 const app = express();
 app.use(cors());
@@ -63,6 +64,8 @@ app.use('/api', prospecificoutcome);
 app.use('/api', prooutcome);
 app.use('/api', showblock);
 app.use('/api', dataDelete);
+app.use('/api', dataDelete);
+app.use('/api', obereport);
 
 app.use(bodyParser.json({limit: '10mb'}));
 

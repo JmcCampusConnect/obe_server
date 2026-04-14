@@ -27,8 +27,10 @@
 		"dotenv": "^17.2.3",
 		"exceljs": "^4.4.0",
 		"express": "^5.1.0",
+		"express-async-handler": "^1.2.0",
 		"multer": "^2.0.2",
 		"sequelize": "^6.37.7",
+		"winston": "^3.19.0",
 		"xlsx": "^0.18.5"
 	},
 	"devDependencies": {
