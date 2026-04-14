@@ -7,7 +7,6 @@ const academic = require('../models/academic');
 const mentor = require('../models/mentor');
 const coursemapping = require('../models/coursemapping');
 const hod = require('../models/hod');
-const chalk = require("chalk").default;
 
 // -----------------------------------------------------------------------
 // Helper: Get unique values from array of objects
