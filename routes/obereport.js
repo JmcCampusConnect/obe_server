@@ -1621,19 +1621,25 @@ route.get('/poReport', async (req, res) => {
             }
 
             // 🔹 Output
-            let serialNo = 1;
             const tableRows = [];
 
             for (const [dept, obeLevel] of Object.entries(departmentPOs)) {
                 tableRows.push({
-                    sNo: serialNo++,
                     programme: dept,
                     obeLevel: obeLevel.toFixed(2),
                     outcome: getOutcome(obeLevel)
                 });
             }
 
+            // Sort by programme name alphabetically
             tableRows.sort((a, b) => a.programme.localeCompare(b.programme));
+
+            // Assign sequential serial numbers after sorting
+            let serialNo = 1;
+            tableRows.forEach(row => {
+                row.sNo = serialNo++;
+            });
+
             finalResults[programType] = tableRows;
         }
 
@@ -1861,19 +1867,25 @@ route.get('/poReport/download-word', async (req, res) => {
             }
 
             // 🔹 Output
-            let serialNo = 1;
             const tableRows = [];
 
             for (const [dept, obeLevel] of Object.entries(departmentPOs)) {
                 tableRows.push({
-                    sNo: serialNo++,
                     programme: dept,
                     obeLevel: obeLevel.toFixed(2),
                     outcome: getOutcome(obeLevel)
                 });
             }
 
+            // Sort by programme name alphabetically
             tableRows.sort((a, b) => a.programme.localeCompare(b.programme));
+
+            // Assign sequential serial numbers after sorting
+            let serialNo = 1;
+            tableRows.forEach(row => {
+                row.sNo = serialNo++;
+            });
+
             finalResults[programType] = tableRows;
         }
 
