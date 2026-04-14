@@ -7,6 +7,7 @@ const academic = require('../models/academic');
 const mentor = require('../models/mentor');
 const coursemapping = require('../models/coursemapping');
 const hod = require('../models/hod');
+const chalk = require("chalk").default;
 
 // -----------------------------------------------------------------------
 // Helper: Get unique values from array of objects
@@ -114,6 +115,7 @@ async function getStudentOutcome({ academicSem, semester, dept_id, category, sec
     });
 
     return calculatedData;
+    
 }
 
 // -----------------------------------------------------------------------
@@ -251,16 +253,15 @@ route.post('/tutordetails', async (req, res) => {
         const tutorDetails = await mentor.findOne({
             where: { staff_id: staffId, academic_year: ac.academic_year }
         });
-        const studentSem = await studentmaster.findOne({
+        const maxSemester = await studentmaster.max('semester', {
             where: {
                 dept_id: tutorDetails.dept_id,
                 section: tutorDetails.section,
                 category: tutorDetails.category,
                 batch: tutorDetails.batch,
-            },
-            attributes: ['semester']
+            }
         });
-        res.json({ tutorDetails, studentSem });
+        res.json({ tutorDetails, studentSem: { semester: maxSemester } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error fetching tutor details' });

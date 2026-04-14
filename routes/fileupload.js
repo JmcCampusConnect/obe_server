@@ -95,9 +95,11 @@ function readExcel(file) {
 // ------------------------------------------------------------------------------------------------------- //
 
 route.post("/staffmaster", upload.single("file"), (req, res) => {
+
     const rows = readExcel(req.file);
+
     processExcel("staffmaster", rows, async (row) => {
-        await staffmaster.upsert({
+        const [staff, created] = await staffmaster.upsert({
             staff_id: row.staff_id,
             staff_category: row.staff_category,
             staff_name: row.staff_name,
@@ -105,6 +107,21 @@ route.post("/staffmaster", upload.single("file"), (req, res) => {
             staff_dept: row.staff_dept,
             dept_category: row.dept_category,
         });
+        if (created) {
+            await scope.create({
+                staff_id: row.staff_id,
+                staff_name: row.staff_name,
+                dashboard: 1, course_list: 1,
+                relationship_matrix: 1,
+                settings: 1, course_outcome: 0,
+                student_outcome: 0,
+                program_specific_outcome: 0,
+                program_outcome: 0,
+                work_progress_report: 0,
+                input_files: 0,
+                manage: 0, obe_report: 0
+            });
+        }
     });
     res.send("Staff Master upload started");
 });
