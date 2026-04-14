@@ -986,6 +986,12 @@ async function calculateCategory(percentage, cal) {
     return 0;
 }
 
+function getOutcome(score) {
+    if (score >= 2.5) return 'High';
+    if (score >= 1.5) return 'Medium';
+    return 'Low';
+}
+
 // ------------------------------------------------------------------------------------------------------- //
 
 
@@ -1073,16 +1079,7 @@ route.get("/academic-years", async (req, res) => {
 
 
 
-// routes/poAttainment.js (or wherever you place it)
 
-
-
-// Helper: Map numeric PO attainment to outcome category
-function getOutcome(score) {
-    if (score >= 2.5) return 'High';
-    if (score >= 1.5) return 'Medium';
-    return 'Low';
-}
 
 // Main route
 route.get('/poReport', async (req, res) => {
