@@ -778,6 +778,415 @@ route.get('/psoReport/download-word', async (req, res) => {
 
 // ------------------------------------------------------------------------------------------------------- //
 
+// Build PO Word Document
+
+async function buildPoWordDoc(poData, selectedAcademicYear) {
+
+    const logoPath = path.join(__dirname, 'jmclogo.png');
+    let logoData = null;
+    if (fs.existsSync(logoPath)) {
+        logoData = fs.readFileSync(logoPath);
+    }
+
+    const sections = [];
+    const nilBorders = {
+        top: nilBorder,
+        bottom: nilBorder,
+        left: nilBorder,
+        right: nilBorder
+    };
+
+    // Process both UG and PG sections
+    for (const programType of ['UG', 'PG']) {
+        const programmeList = poData[programType] || [];
+        
+        if (programmeList.length === 0) continue;
+
+        // Page 1: Methodology
+        const page1 = [];
+
+        page1.push(buildHeaderTable(logoData));
+
+        page1.push(new Paragraph({ spacing: { before: 0, after: 0 }, children: [new TextRun({ text: "", bold: true })] }));
+
+        page1.push(
+            new Paragraph({
+                spacing: { before: 0, after: 0 },
+                children: [new TextRun({ text: "Steps to Calculate the Attainment of Programme Outcome (PO)", bold: true, size: 26 })],
+            })
+        );
+
+        page1.push(new Paragraph({ spacing: { before: 0, after: 0 }, children: [] }));
+
+        const stepTexts = [
+            "1. The CIA and ESE marks are normalized to a common scale value of 100.",
+            "2. From the above normalized values, a weightage of 40% is assigned to the CIA Component and a weightage of 60% is assigned to the ESE component.",
+            `3. These values are summed up to get an OBE score. An OBE scale value of 1 to 4 and the level of attainment (Low, Moderate, High, Excellent) by a student on a specific course is determined based on this score. This is shown in Table 1.`,
+            "4. A mean of the OBE scale value for all the students indicates the attainment level of the particular course. This is shown in Table 2.",
+            "5. The mean of the OBE scale value for all the courses of a specific programme determines the attainment level of that programme's Programme Outcome. This is shown in Table 3.",
+        ];
+
+        stepTexts.forEach((text) => {
+            page1.push(
+                new Paragraph({
+                    spacing: { before: 0, after: 0 },
+                    children: [new TextRun({ text, size: 24, font: "Times New Roman" })],
+                })
+            );
+        });
+
+        page1.push(new Paragraph({ spacing: { before: 0, after: 0 }, children: [] }));
+
+        // Table 1 caption + table
+        page1.push(
+            new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 240, after: 60, line: 360, lineRule: "auto" },
+                indent: { left: 220, right: 218 },
+                children: [new TextRun({ text: `Table 1: Weightage by students and scale used to assess the attainment (${programType})`, bold: true })],
+            })
+        );
+
+        function mCell(text, { align = AlignmentType.CENTER, colWidth = 1000, bold = false } = {}) {
+            return new TableCell({
+                borders: allSingle,
+                width: { size: colWidth, type: WidthType.DXA },
+                verticalAlign: VerticalAlign.CENTER,
+                margins: { top: 60, bottom: 60, left: 100, right: 100 },
+                children: [
+                    new Paragraph({
+                        alignment: align,
+                        spacing: { before: 0, after: 0 },
+                        children: [new TextRun({
+                            text: String(text ?? ""),
+                            bold,
+                            size: 22,
+                        })],
+                    }),
+                ],
+            });
+        }
+
+        page1.push(
+            new Table({
+                width: { size: METHOD_TBL1_W, type: WidthType.DXA },
+                columnWidths: [METHOD_COL1_1, METHOD_COL1_2, METHOD_COL1_3],
+                alignment: AlignmentType.CENTER,
+                rows: [
+                    new TableRow({
+                        tableHeader: true,
+                        children: [
+                            mCell("Weightage obtained", { bold: true, colWidth: METHOD_COL1_1 }),
+                            mCell("Scale used", { bold: true, colWidth: METHOD_COL1_2 }),
+                            mCell("Level of attainment of Outcome", { bold: true, colWidth: METHOD_COL1_3 }),
+                        ],
+                    }),
+                    ...[["0 - 49", "1", "Low"], ["50 - 74", "2", "Moderate"], ["75 – 94", "3", "High"], ["95 - 100", "4", "Excellent"]]
+                        .map(([w, s, l]) => new TableRow({
+                            children: [
+                                mCell(w, { colWidth: METHOD_COL1_1 }),
+                                mCell(s, { colWidth: METHOD_COL1_2 }),
+                                mCell(l, { colWidth: METHOD_COL1_3 }),
+                            ]
+                        })),
+                ],
+            })
+        );
+
+        page1.push(new Paragraph({ spacing: { before: 240, after: 0 }, children: [] }));
+
+        page1.push(
+            new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 0, after: 60, line: 360, lineRule: "auto" },
+                indent: { left: 220, right: 218 },
+                children: [new TextRun({ text: `Table 2: Scale used to assess the Course Outcome (${programType})`, bold: true })],
+            })
+        );
+
+        page1.push(
+            new Table({
+                width: { size: METHOD_TBL2_W, type: WidthType.DXA },
+                columnWidths: [METHOD_COL2_1, METHOD_COL2_2],
+                alignment: AlignmentType.CENTER,
+                rows: [
+                    new TableRow({
+                        tableHeader: true,
+                        children: [
+                            mCell("Scale used", { bold: true, colWidth: METHOD_COL2_1 }),
+                            mCell("Level of attainment of Outcome", { bold: true, colWidth: METHOD_COL2_2 }),
+                        ],
+                    }),
+                    ...[["0 – 1.0", "Low"], ["1.1 – 2.0", "Moderate"], ["2.1 – 3.0", "High"], ["3.1 – 4.0", "Excellent"]]
+                        .map(([s, l]) => new TableRow({
+                            children: [
+                                mCell(s, { colWidth: METHOD_COL2_1 }),
+                                mCell(l, { colWidth: METHOD_COL2_2 }),
+                            ]
+                        })),
+                ],
+            })
+        );
+
+        page1.push(new Paragraph({ spacing: { before: 240, after: 0 }, children: [] }));
+
+        page1.push(
+            new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 0, after: 60, line: 360, lineRule: "auto" },
+                indent: { left: 220, right: 218 },
+                children: [new TextRun({ text: `Table 3: Scale used to assess the Programme Outcome (${programType})`, bold: true })],
+            })
+        );
+
+        page1.push(
+            new Table({
+                width: { size: METHOD_TBL2_W, type: WidthType.DXA },
+                columnWidths: [METHOD_COL2_1, METHOD_COL2_2],
+                alignment: AlignmentType.CENTER,
+                rows: [
+                    new TableRow({
+                        tableHeader: true,
+                        children: [
+                            mCell("Scale used", { bold: true, colWidth: METHOD_COL2_1 }),
+                            mCell("Level of attainment of Outcome", { bold: true, colWidth: METHOD_COL2_2 }),
+                        ],
+                    }),
+                    ...[["0 – 1.0", "Low"], ["1.1 – 2.0", "Moderate"], ["2.1 – 3.0", "High"], ["3.1 – 4.0", "Excellent"]]
+                        .map(([s, l]) => new TableRow({
+                            children: [
+                                mCell(s, { colWidth: METHOD_COL2_1 }),
+                                mCell(l, { colWidth: METHOD_COL2_2 }),
+                            ]
+                        })),
+                ],
+            })
+        );
+
+        // Page 2: Programme Data Table
+        const page2 = [];
+
+        page2.push(buildHeaderTable(logoData));
+
+        page2.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [] }));
+        page2.push(
+            new Paragraph({
+                spacing: { line: 360, lineRule: "auto" },
+                indent: { left: 120 },
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({ text: "", bold: true })],
+            })
+        );
+
+        const sectionLabel = programType === 'UG' ? 'Undergraduate' : 'Postgraduate';
+
+        page2.push(
+            new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 0, after: 0, line: 360, lineRule: "auto" },
+                indent: { left: 720 },
+                children: [new TextRun({
+                    text: `Attainment of Programme Outcome (${programType})`,
+                    bold: true,
+                    underline: { type: UnderlineType.SINGLE },
+                })],
+            })
+        );
+
+        page2.push(new Paragraph({ spacing: { before: 240, after: 0 }, children: [] }));
+
+        page2.push(
+            new Table({
+                width: { size: 9000, type: WidthType.DXA },
+                alignment: AlignmentType.CENTER,
+                borders: nilBorders,
+                rows: [
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                borders: nilBorders,
+                                verticalAlign: VerticalAlign.CENTER,
+                                children: [
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({ text: "Programme Type : ", bold: true }),
+                                            new TextRun({ text: " " }),
+                                            new TextRun({ text: `${sectionLabel} Programmes` }),
+                                        ],
+                                    }),
+                                ],
+                            }),
+                            new TableCell({
+                                borders: nilBorders,
+                                verticalAlign: VerticalAlign.CENTER,
+                                children: [
+                                    new Paragraph({
+                                        alignment: AlignmentType.RIGHT,
+                                        children: [
+                                            new TextRun({ text: "Academic Year : ", bold: true }),
+                                            new TextRun({ text: `${selectedAcademicYear}`, bold: false }),
+                                        ],
+                                    }),
+                                ],
+                            }),
+                        ],
+                    }),
+                ],
+            })
+        );
+
+        page2.push(
+            new Paragraph({
+                indent: { left: 720 },
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: "", bold: true })],
+            })
+        );
+
+        // Data table for programmes
+        const poDataCols = {
+            SNO: 800,
+            PROG: 3500,
+            OBE: 1400,
+            OUTCOME: 1400
+        };
+
+        const dataRows = [
+            new TableRow({
+                tableHeader: true,
+                height: { value: 400, rule: "exact" },
+                children: [
+                    cCell("S. No", { align: AlignmentType.CENTER, colWidth: poDataCols.SNO }),
+                    cCell("Programme", { align: AlignmentType.CENTER, colWidth: poDataCols.PROG }),
+                    cCell("OBE Level", { align: AlignmentType.CENTER, colWidth: poDataCols.OBE }),
+                    cCell("Programme Outcome", { align: AlignmentType.CENTER, colWidth: poDataCols.OUTCOME }),
+                ],
+            }),
+
+            ...programmeList.map((item) => {
+                return new TableRow({
+                    height: { value: 350, rule: "exact" },
+                    children: [
+                        cCell(item.sNo, { align: AlignmentType.CENTER, colWidth: poDataCols.SNO }),
+                        cCell(item.programme, { align: AlignmentType.LEFT, colWidth: poDataCols.PROG }),
+                        cCell(item.obeLevel, { align: AlignmentType.CENTER, colWidth: poDataCols.OBE }),
+                        cCell(item.outcome, { align: AlignmentType.CENTER, colWidth: poDataCols.OUTCOME }),
+                    ],
+                });
+            }),
+        ];
+
+        // Calculate average
+        const avgObeLevel = (programmeList.reduce((sum, item) => sum + parseFloat(item.obeLevel), 0) / programmeList.length).toFixed(2);
+        const avgOutcome = getOutcome(avgObeLevel);
+
+        dataRows.push(
+            new TableRow({
+                height: { value: 400, rule: "exact" },
+                children: [
+                    new TableCell({
+                        columnSpan: 2,
+                        borders: {
+                            top: singleBorder,
+                            left: singleBorder,
+                            bottom: singleBorder,
+                            right: singleBorder,
+                        },
+                        width: { size: poDataCols.SNO + poDataCols.PROG, type: WidthType.DXA },
+                        verticalAlign: VerticalAlign.CENTER,
+                        margins: { top: 40, bottom: 40, left: 80, right: 80 },
+                        children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                spacing: { before: 0, after: 0 },
+                                children: [new TextRun({ text: `Programme Outcome (${programType}) Average`, bold: true, size: 22, font: "Calibri", color: "000000" })],
+                            }),
+                        ],
+                    }),
+                    cCell(avgObeLevel, { align: AlignmentType.CENTER, colWidth: poDataCols.OBE }),
+                    cCell(avgOutcome, { align: AlignmentType.CENTER, colWidth: poDataCols.OUTCOME }),
+                ],
+            })
+        );
+
+        page2.push(new Paragraph({ spacing: { before: 120, after: 0 }, children: [] }));
+
+        page2.push(
+            new Table({
+                width: { size: 8100, type: WidthType.DXA },
+                columnWidths: [poDataCols.SNO, poDataCols.PROG, poDataCols.OBE, poDataCols.OUTCOME],
+                alignment: AlignmentType.CENTER,
+                rows: dataRows,
+            })
+        );
+
+        page2.push(new Paragraph({
+            spacing: { before: 500, after: 0, line: 360, lineRule: "auto" },
+            children: []
+        }));
+
+        page2.push(
+            new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 0, after: 0 },
+                children: [new TextRun({ text: "Controller of Examinations", bold: true, size: 26, font: "Bookman Old Style" })],
+            })
+        );
+
+        const commonPageProps = {
+            size: { width: PAGE_W, height: PAGE_H },
+            margin: { top: MARGIN, right: MARGIN, bottom: MARGIN, left: MARGIN, header: 709, footer: 709, gutter: 0 },
+        };
+
+        sections.push({
+            properties: { page: commonPageProps },
+            headers: { default: new Header({ children: [] }) },
+            footers: { default: new Footer({ children: [] }) },
+            children: page1,
+        });
+
+        sections.push({
+            properties: { page: commonPageProps },
+            headers: { default: new Header({ children: [] }) },
+            footers: { default: new Footer({ children: [] }) },
+            children: page2,
+        });
+    }
+
+    return new Document({
+        numbering: {
+            config: [
+                {
+                    reference: "steps-list",
+                    levels: [{
+                        level: 0,
+                        format: LevelFormat.DECIMAL,
+                        text: "%1.",
+                        alignment: AlignmentType.LEFT,
+                        style: {
+                            paragraph: {
+                                indent: { left: 360, hanging: 360 },
+                            },
+                            run: {
+                                size: 24,
+                                font: "Times New Roman",
+                            },
+                        },
+                    }],
+                },
+            ],
+        },
+        styles: {
+            default: {
+                document: { run: { font: "Calibri", size: 22 } },
+            },
+        },
+        sections,
+    });
+}
+
+// ------------------------------------------------------------------------------------------------------- //
+
 // Shared data builder
 
 async function buildResultByDept(deptList, academicYear, academic_sem, cal ) {
@@ -1237,6 +1646,258 @@ route.get('/poReport', async (req, res) => {
 });
 
 // ------------------------------------------------------------------------------------------------------- //
+
+// Download PO Report as Word Document
+
+route.get('/poReport/download-word', async (req, res) => {
+
+    try {
+
+        const { academic_year } = req.query;
+
+        if (!academic_year) {
+            return res.status(400).json({
+                error: 'Academic year is required'
+            });
+        }
+
+        // 🔹 Active semester
+        const academicdata = await academic.findOne({ where: { active_sem: 1 } });
+        if (!academicdata) {
+            return res.status(404).json({ error: 'No active academic semester' });
+        }
+
+        // 🔹 Calculation config
+        const cal = await calculation.findOne({
+            where: { academic_sem: academicdata.academic_sem }
+        });
+        if (!cal) {
+            return res.status(404).json({ error: 'Calculation thresholds not found' });
+        }
+
+        const finalResults = { UG: [], PG: [] };
+
+        for (const programType of ['UG', 'PG']) {
+
+            // 🔹 Get departments
+            const deptRecords = await coursemaster.findAll({
+                where: { academic_year, graduate: programType },
+                attributes: ['dept_name'],
+                raw: true
+            });
+
+            const uniqueDept = [...new Set(deptRecords.map(d => d.dept_name))];
+            const departmentPOs = {};
+
+            for (const dept of uniqueDept) {
+
+                // 🔹 Courses
+                const courseRecords = await coursemaster.findAll({
+                    where: { academic_year, dept_name: dept, graduate: programType },
+                    attributes: ['course_code'],
+                    raw: true
+                });
+
+                const uniqueCourseCode = [...new Set(courseRecords.map(c => c.course_code))];
+                if (uniqueCourseCode.length === 0) continue;
+
+                // 🔹 Get all mappings at once (OPTIMIZED)
+                const allMappings = await rsmatrix.findAll({
+                    where: { course_code: uniqueCourseCode }
+                });
+
+                // Group mappings by course
+                const mappingByCourse = {};
+                for (const m of allMappings) {
+                    if (!mappingByCourse[m.course_code]) {
+                        mappingByCourse[m.course_code] = [];
+                    }
+                    mappingByCourse[m.course_code].push(m);
+                }
+
+                let countAboveThreshold = { lot: {}, mot: {}, hot: {}, elot: {}, emot: {}, ehot: {} };
+                let studentCountsByCourse = {};
+
+                // 🔹 Marks
+                const marks = await markentry.findAll({
+                    where: {
+                        course_code: uniqueCourseCode,
+                        academic_year: academicdata.academic_year
+                    }
+                });
+
+                // 🔹 Process marks
+                for (const entry of marks) {
+                    const {
+                        course_code,
+                        c1_lot = 0, c2_lot = 0, a1_lot = 0, a2_lot = 0,
+                        c1_mot = 0, c2_mot = 0,
+                        c1_hot = 0, c2_hot = 0,
+                        ese_lot = 0, ese_mot = 0, ese_hot = 0
+                    } = entry.dataValues;
+
+                    const lot_percentage = ((c1_lot + c2_lot + a1_lot + a2_lot) / (cal.c_lot || 1)) * 100;
+                    const mot_percentage = ((c1_mot + c2_mot) / (cal.c_mot || 1)) * 100;
+                    const hot_percentage = ((c1_hot + c2_hot) / (cal.c_hot || 1)) * 100;
+                    const elot_percentage = (ese_lot / (cal.ese_lot || 1)) * 100;
+                    const emot_percentage = (ese_mot / (cal.ese_mot || 1)) * 100;
+                    const ehot_percentage = (ese_hot / (cal.ese_hot || 1)) * 100;
+
+                    ['lot', 'mot', 'hot', 'elot', 'emot', 'ehot'].forEach(type => {
+                        if (!countAboveThreshold[type][course_code]) {
+                            countAboveThreshold[type][course_code] = 0;
+                        }
+                    });
+
+                    if (!studentCountsByCourse[course_code]) {
+                        studentCountsByCourse[course_code] = 0;
+                    }
+
+                    studentCountsByCourse[course_code]++;
+
+                    const thresh = cal.co_thresh_value || 50;
+
+                    if (lot_percentage >= thresh) countAboveThreshold.lot[course_code]++;
+                    if (mot_percentage >= thresh) countAboveThreshold.mot[course_code]++;
+                    if (hot_percentage >= thresh) countAboveThreshold.hot[course_code]++;
+                    if (elot_percentage >= thresh) countAboveThreshold.elot[course_code]++;
+                    if (emot_percentage >= thresh) countAboveThreshold.emot[course_code]++;
+                    if (ehot_percentage >= thresh) countAboveThreshold.ehot[course_code]++;
+                }
+
+                // 🔹 Percentage
+                let percentageAboveThreshold = { lot: {}, mot: {}, hot: {}, elot: {}, emot: {}, ehot: {} };
+
+                for (const course_code of uniqueCourseCode) {
+                    const total = studentCountsByCourse[course_code] || 1;
+
+                    percentageAboveThreshold.lot[course_code] = (countAboveThreshold.lot[course_code] / total) * 100;
+                    percentageAboveThreshold.mot[course_code] = (countAboveThreshold.mot[course_code] / total) * 100;
+                    percentageAboveThreshold.hot[course_code] = (countAboveThreshold.hot[course_code] / total) * 100;
+                    percentageAboveThreshold.elot[course_code] = (countAboveThreshold.elot[course_code] / total) * 100;
+                    percentageAboveThreshold.emot[course_code] = (countAboveThreshold.emot[course_code] / total) * 100;
+                    percentageAboveThreshold.ehot[course_code] = (countAboveThreshold.ehot[course_code] / total) * 100;
+                }
+
+                // 🔹 PSO Calculation
+                let totalCapso1 = 0, totalCapso2 = 0, totalCapso3 = 0, totalCapso4 = 0, totalCapso5 = 0;
+                let courseCount = uniqueCourseCode.length;
+
+                for (const course_code of uniqueCourseCode) {
+
+                    const lotAtt = await calculateCategory(percentageAboveThreshold.lot[course_code], cal);
+                    const motAtt = await calculateCategory(percentageAboveThreshold.mot[course_code], cal);
+                    const hotAtt = await calculateCategory(percentageAboveThreshold.hot[course_code], cal);
+                    const elotAtt = await calculateCategory(percentageAboveThreshold.elot[course_code], cal);
+                    const emotAtt = await calculateCategory(percentageAboveThreshold.emot[course_code], cal);
+                    const ehotAtt = await calculateCategory(percentageAboveThreshold.ehot[course_code], cal);
+
+                    const ciaWeight = cal.cia_weightage || 40;
+                    const eseWeight = cal.ese_weightage || 60;
+
+                    const lot = (lotAtt * ciaWeight / 100) + (elotAtt * eseWeight / 100);
+                    const mot = (motAtt * ciaWeight / 100) + (emotAtt * eseWeight / 100);
+                    const hot = (hotAtt * ciaWeight / 100) + (ehotAtt * eseWeight / 100);
+
+                    const mappings = mappingByCourse[course_code] || [];
+
+                    for (const entry of mappings) {
+
+                        const safeDiv = (num, den) => den ? num / den : 0;
+
+                        const capso1 = safeDiv(
+                            (lot * entry.co1_pso1) + (lot * entry.co2_pso1) +
+                            (mot * entry.co3_pso1) + (mot * entry.co4_pso1) +
+                            (hot * entry.co5_pso1),
+                            (entry.co1_pso1 + entry.co2_pso1 + entry.co3_pso1 + entry.co4_pso1 + entry.co5_pso1)
+                        );
+
+                        const capso2 = safeDiv(
+                            (lot * entry.co1_pso2) + (lot * entry.co2_pso2) +
+                            (mot * entry.co3_pso2) + (mot * entry.co4_pso2) +
+                            (hot * entry.co5_pso2),
+                            (entry.co1_pso2 + entry.co2_pso2 + entry.co3_pso2 + entry.co4_pso2 + entry.co5_pso2)
+                        );
+
+                        const capso3 = safeDiv(
+                            (lot * entry.co1_pso3) + (lot * entry.co2_pso3) +
+                            (mot * entry.co3_pso3) + (mot * entry.co4_pso3) +
+                            (hot * entry.co5_pso3),
+                            (entry.co1_pso3 + entry.co2_pso3 + entry.co3_pso3 + entry.co4_pso3 + entry.co5_pso3)
+                        );
+
+                        const capso4 = safeDiv(
+                            (lot * entry.co1_pso4) + (lot * entry.co2_pso4) +
+                            (mot * entry.co3_pso4) + (mot * entry.co4_pso4) +
+                            (hot * entry.co5_pso4),
+                            (entry.co1_pso4 + entry.co2_pso4 + entry.co3_pso4 + entry.co4_pso4 + entry.co5_pso4)
+                        );
+
+                        const capso5 = safeDiv(
+                            (lot * entry.co1_pso5) + (lot * entry.co2_pso5) +
+                            (mot * entry.co3_pso5) + (mot * entry.co4_pso5) +
+                            (hot * entry.co5_pso5),
+                            (entry.co1_pso5 + entry.co2_pso5 + entry.co3_pso5 + entry.co4_pso5 + entry.co5_pso5)
+                        );
+
+                        totalCapso1 += capso1;
+                        totalCapso2 += capso2;
+                        totalCapso3 += capso3;
+                        totalCapso4 += capso4;
+                        totalCapso5 += capso5;
+                    }
+                }
+
+                // 🔹 Final Department PSO Average
+                const pso1 = totalCapso1 / courseCount;
+                const pso2 = totalCapso2 / courseCount;
+                const pso3 = totalCapso3 / courseCount;
+                const pso4 = totalCapso4 / courseCount;
+                const pso5 = totalCapso5 / courseCount;
+
+                const deptPOAverage = (pso1 + pso2 + pso3 + pso4 + pso5) / 5;
+
+                departmentPOs[dept] = deptPOAverage;
+            }
+
+            // 🔹 Output
+            let serialNo = 1;
+            const tableRows = [];
+
+            for (const [dept, obeLevel] of Object.entries(departmentPOs)) {
+                tableRows.push({
+                    sNo: serialNo++,
+                    programme: dept,
+                    obeLevel: obeLevel.toFixed(2),
+                    outcome: getOutcome(obeLevel)
+                });
+            }
+
+            tableRows.sort((a, b) => a.programme.localeCompare(b.programme));
+            finalResults[programType] = tableRows;
+        }
+
+        if (finalResults.UG.length === 0 && finalResults.PG.length === 0) {
+            return res.status(404).json({
+                error: "No data found for the selected academic year"
+            });
+        }
+
+        const doc = await buildPoWordDoc(finalResults, academic_year);
+        const buffer = await Packer.toBuffer(doc);
+        const timestamp = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', `attachment; filename=PO_Report_${timestamp}.docx`);
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Error generating PO Word document:', error);
+        res.status(500).json({ error: 'Failed to generate Word document' });
+    }
+});
+
+// ------------------------------------------------------------------------------------------------------- //
+
 
 // Get unique academic years
 
