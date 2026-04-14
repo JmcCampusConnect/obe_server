@@ -702,6 +702,7 @@ route.get('/psoReport', async (req, res) => {
             cal
         );
 
+        // console.table(resultByDept); 
         res.json(resultByDept);
 
     } catch (err) {
@@ -779,7 +780,7 @@ route.get('/psoReport/download-word', async (req, res) => {
 
 // Shared data builder
 
-async function buildResultByDept(deptList, academicYear, cal) {
+async function buildResultByDept(deptList, academicYear, academic_sem, cal ) {
 
     const resultByDept = {};
 
@@ -790,6 +791,7 @@ async function buildResultByDept(deptList, academicYear, cal) {
             attributes: ['graduate'],
             raw: true
         });
+        // console.log('Graduate Info : ', graduateInfo);
 
         const graduate = graduateInfo?.graduate || "PG";
 
@@ -798,6 +800,7 @@ async function buildResultByDept(deptList, academicYear, cal) {
             attributes: ['course_code'],
             raw: true
         });
+        // console.log('courseEntries : ', courseEntries);
 
         const uniqueCourseCode = [...new Set(courseEntries.map(c => c.course_code))];
 
@@ -812,6 +815,7 @@ async function buildResultByDept(deptList, academicYear, cal) {
             group: ['course_code', 'course_title'],
             raw: true
         });
+        // console.log('Course Details : ', courseDetails);
 
         const courseNames = {};
         courseDetails.forEach(course => {
@@ -825,7 +829,8 @@ async function buildResultByDept(deptList, academicYear, cal) {
                 academic_year: academicYear
             }
         });
-
+        // console.log('Marks : ', marks.length);
+        
         // Initialize data structures
         let countAboveThreshold = { lot: {}, mot: {}, hot: {}, elot: {}, emot: {}, ehot: {} };
         const studentCountsByCourse = {};
@@ -891,7 +896,7 @@ async function buildResultByDept(deptList, academicYear, cal) {
             attainedScores.elot[code] = await calculateCategory(pctAbove.elot[code] || 0, cal);
             attainedScores.emot[code] = await calculateCategory(pctAbove.emot[code] || 0, cal);
             attainedScores.ehot[code] = await calculateCategory(pctAbove.ehot[code] || 0, cal);
-
+            
             // Calculate overall scores with weightage
             if (cal.cia_weightage && cal.ese_weightage) {
                 attainedScores.overall[code] = {
@@ -970,6 +975,7 @@ async function buildResultByDept(deptList, academicYear, cal) {
         resultByDept[dept_id] = attainedScores;
     }
 
+    // console.log(resultByDept)
     return resultByDept;
 }
 
@@ -994,96 +1000,12 @@ function getOutcome(score) {
 
 // ------------------------------------------------------------------------------------------------------- //
 
+// PO Report 
 
-
-// ------------------------------------------------------------------------------------------------------- //
-
-// Get unique academic years
-
-route.get("/academic-years", async (req, res) => {
-    try {
-        const years = await academic.findAll({
-            attributes: [
-                [Sequelize.fn("DISTINCT", Sequelize.col("academic_year")), "academic_year"]
-            ],
-            order: [["academic_year", "ASC"]]
-        });
-
-        res.json(years.map(y => y.academic_year));
-    } catch (error) {
-        console.error("Error fetching academic years:", error);
-        res.status(500).json({ error: "Failed to fetch academic years" });
-    }
-});
-
-// ------------------------------------------------------------------------------------------------------- //
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Main route
 route.get('/poReport', async (req, res) => {
+
     try {
+
         const { academic_year } = req.query;
 
         if (!academic_year) {
@@ -1306,18 +1228,34 @@ route.get('/poReport', async (req, res) => {
             finalResults[programType] = tableRows;
         }
 
-        console.log(finalResults)
         res.json(finalResults);
 
     } catch (error) {
-        console.error(error);
+        console.error('Error generating PO report:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
+// ------------------------------------------------------------------------------------------------------- //
 
+// Get unique academic years
 
+route.get("/academic-years", async (req, res) => {
+    try {
+        const years = await academic.findAll({
+            attributes: [
+                [Sequelize.fn("DISTINCT", Sequelize.col("academic_year")), "academic_year"]
+            ],
+            order: [["academic_year", "ASC"]]
+        });
 
+        res.json(years.map(y => y.academic_year));
+    } catch (error) {
+        console.error("Error fetching academic years:", error);
+        res.status(500).json({ error: "Failed to fetch academic years" });
+    }
+});
 
+// ------------------------------------------------------------------------------------------------------- //
 
 module.exports = route;
