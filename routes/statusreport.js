@@ -53,7 +53,7 @@ route.post('/deptstatusreport', async (req, res) => {
                 })
                 return {
                     ...staffMember.toJSON(), course_title: staffMember.course_title || '',
-                    dept_name: staffDept ? staffDept.staff_dept : 'unknown',
+                    dept_name: staffDept ? staffDept.staff_dept : '',
                 }
             }))
 
@@ -63,9 +63,9 @@ route.post('/deptstatusreport', async (req, res) => {
                 )
                 return {
                     ...match.toJSON(),
-                    staff_name: matchStaff ? matchStaff.staff_name : 'unknown',
-                    dept_id: matchStaff ? matchStaff.dept_id : 'unknown',
-                    dept_name: matchStaff ? matchStaff.dept_name : 'unknown',
+                    staff_name: matchStaff ? matchStaff.staff_name : '',
+                    dept_id: matchStaff ? matchStaff.dept_id : '',
+                    dept_name: matchStaff ? matchStaff.dept_name : '',
                     course_title: matchStaff ? matchStaff.course_title : '',
                     semester: matchStaff ? matchStaff.semester : ''
                 }

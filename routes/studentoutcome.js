@@ -4,8 +4,8 @@ const markentry = require('../models/markentry');
 const studentmaster = require('../models/studentmaster');
 const calculation = require('../models/calculation');
 const academic = require('../models/academic');
-const mentor = require('../models/mentor');
 const coursemapping = require('../models/coursemapping');
+const mentor = require('../models/mentor');
 const hod = require('../models/hod');
 
 // -----------------------------------------------------------------------
@@ -66,6 +66,7 @@ async function getStudentOutcome({ academicSem, semester, dept_id, category, sec
 
     // 5. Process each mark entry
     const calculatedData = marks.map(entry => {
+
         const {
             c1_lot = 0, c2_lot = 0, a1_lot = 0, a2_lot = 0, ese_lot = 0,
             c1_mot = 0, c2_mot = 0, ese_mot = 0,
@@ -108,13 +109,11 @@ async function getStudentOutcome({ academicSem, semester, dept_id, category, sec
             elot_percentage, emot_percentage, ehot_percentage,
             lot_attainment, mot_attainment, hot_attainment,
             elot_attainment, emot_attainment, ehot_attainment,
-            overAll_lot, overAll_mot, overAll_hot,
-            final_grade
+            overAll_lot, overAll_mot, overAll_hot, final_grade
         };
     });
 
     return calculatedData;
-    
 }
 
 // -----------------------------------------------------------------------
