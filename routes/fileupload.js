@@ -255,12 +255,27 @@ route.post("/hod", upload.single("file"), (req, res) => {
 // MENTOR
 // ------------------------------------------------------------------------------------------------------- //
 
-route.post("/mentor", upload.single("file"), (req, res) => {
+route.post("/mentor", upload.single("file"), async (req, res) => {
+    
     const rows = readExcel(req.file);
-    processExcel("mentor", rows, async (row) => {
-        await mentor.upsert(row);
+
+    const activeAcademic = await academic.findOne({
+        where: { active_sem: 1 },
     });
+
+    if (!activeAcademic) {
+        return res.status(400).send("No active academic semester found");
+    }
+
     res.send("Mentor upload started");
+
+    processExcel("mentor", rows, async (row) => {
+        await mentor.upsert({
+            ...row,
+            academic_sem: activeAcademic.academic_sem,
+            academic_year: activeAcademic.academic_year,
+        });
+    });
 });
 
 // ------------------------------------------------------------------------------------------------------- //

@@ -169,7 +169,6 @@ app.post('/login', async (req, res) => {
     try {
 
         const user = await staffmaster.findOne({ where: { staff_id } });
-        console.log(`User found: ${user ? 'Yes' : 'No'}`);
 
         if (!user) {
             console.warn('Login attempt failed: User not found');
